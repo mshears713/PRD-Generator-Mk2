@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from unittest.mock import patch, MagicMock
 from pipeline.recommender import get_recommendation
 
+os.environ.setdefault("OPENAI_API_KEY", "test-key")
 
 FAKE_RESPONSE = {
     "summary": "A task management platform where remote teams create, assign, and track tasks in real time.",

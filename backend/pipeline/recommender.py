@@ -4,7 +4,7 @@ from openai import OpenAI
 
 
 def get_recommendation(idea: str) -> dict:
-    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
     response = client.chat.completions.create(
         model="gpt-4o",
