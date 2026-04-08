@@ -73,10 +73,7 @@ def test_generate_env_contains_openrouter_key():
 
 
 def test_recommend_missing_openai_key_returns_500():
-    del os.environ["OPENAI_API_KEY"]
-    import importlib, main as m
-    importlib.reload(m)
-    client = TestClient(m.app)
-    response = client.post("/recommend", json={"idea": "test"})
+    with patch("main.os.getenv", return_value=None):
+        client = get_client()
+        response = client.post("/recommend", json={"idea": "test"})
     assert response.status_code == 500
-    os.environ["OPENAI_API_KEY"] = "test-key"
