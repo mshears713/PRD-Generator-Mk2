@@ -52,3 +52,18 @@ def test_growth_check_contains_indicators():
     assert "✅" in result
     assert "⚠️" in result
     assert "❌" in result
+
+
+def test_growth_check_with_apis_in_selections():
+    selections_with_apis = {
+        "scope": "fullstack",
+        "backend": "fastapi",
+        "frontend": "react",
+        "apis": ["openrouter", "tavily"],
+        "database": "postgres",
+    }
+    with patch("pipeline.growth.OpenAI") as MockClient:
+        MockClient.return_value.chat.completions.create.return_value = make_openai_response(FAKE_GROWTH)
+        result = generate_growth_check(FAKE_PRD, selections_with_apis)
+    assert isinstance(result, str)
+    assert len(result) > 50
