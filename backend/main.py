@@ -17,7 +17,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Dev only — restrict to frontend origin before deployment
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -41,7 +41,10 @@ class GenerateRequest(BaseModel):
 def recommend(req: RecommendRequest):
     if not os.getenv("OPENAI_API_KEY"):
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
-    return get_recommendation(req.idea)
+    try:
+        return get_recommendation(req.idea)
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=f"LLM response error: {e}")
 
 
 @app.post("/generate")
@@ -57,10 +60,14 @@ def generate(req: GenerateRequest):
         "database": req.database,
     }
 
-    normalized = normalize(req.idea, selections)
-    architecture = analyze(normalized)
-    prd = generate_prd(normalized, architecture)
-    growth_check = generate_growth_check(prd, selections)
+    try:
+        normalized = normalize(req.idea, selections)
+        architecture = analyze(normalized)
+        prd = generate_prd(normalized, architecture)
+        growth_check = generate_growth_check(prd, selections)
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=f"LLM response error: {e}")
+
     env = build_env(req.apis, req.api_keys, req.database)
 
     return {"prd": prd, "env": env, "growth_check": growth_check}

@@ -42,4 +42,7 @@ def get_recommendation(idea: str) -> dict:
         ],
     )
 
-    return json.loads(response.choices[0].message.content)
+    try:
+        return json.loads(response.choices[0].message.content)
+    except (json.JSONDecodeError, ValueError) as e:
+        raise ValueError(f"Recommender received invalid JSON from LLM: {e}")

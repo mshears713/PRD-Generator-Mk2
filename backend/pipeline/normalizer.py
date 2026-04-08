@@ -43,4 +43,7 @@ def normalize(idea: str, selections: dict) -> dict:
         ],
     )
 
-    return json.loads(response.choices[0].message.content)
+    try:
+        return json.loads(response.choices[0].message.content)
+    except (json.JSONDecodeError, ValueError) as e:
+        raise ValueError(f"Normalizer received invalid JSON from LLM: {e}")
