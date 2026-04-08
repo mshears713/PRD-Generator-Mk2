@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import IdeaInput from './components/IdeaInput'
 import LoadingState from './components/LoadingState'
+import RecommendationPanel from './components/RecommendationPanel'
 import './styles/main.css'
 
 const GENERATE_STAGES = [
@@ -86,6 +87,14 @@ export default function App() {
       )}
       {stage === 'recommending' && (
         <LoadingState message="Understanding your idea..." />
+      )}
+      {stage === 'recommendation' && (
+        <RecommendationPanel
+          summary={summary}
+          selections={selections}
+          onChange={setSelections}
+          onGenerate={handleGenerate}
+        />
       )}
       {stage === 'generating' && (
         <LoadingState stages={GENERATE_STAGES} cycleInterval={6000} />
