@@ -2,6 +2,7 @@ import { useState } from 'react'
 import IdeaInput from './components/IdeaInput'
 import LoadingState from './components/LoadingState'
 import RecommendationPanel from './components/RecommendationPanel'
+import OutputPanel from './components/OutputPanel'
 import './styles/main.css'
 
 const GENERATE_STAGES = [
@@ -98,6 +99,9 @@ export default function App() {
       )}
       {stage === 'generating' && (
         <LoadingState stages={GENERATE_STAGES} cycleInterval={6000} />
+      )}
+      {stage === 'output' && (
+        <OutputPanel output={output} onReset={handleReset} />
       )}
     </div>
   )
