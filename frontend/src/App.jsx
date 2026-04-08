@@ -1,121 +1,95 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import IdeaInput from './components/IdeaInput'
+import LoadingState from './components/LoadingState'
+import './styles/main.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+const GENERATE_STAGES = [
+  'Normalizing system definition...',
+  'Analyzing architecture...',
+  'Generating PRD...',
+  'Running Growth Check...',
+]
+
+export default function App() {
+  const [stage, setStage] = useState('idea')
+  const [idea, setIdea] = useState('')
+  const [summary, setSummary] = useState('')
+  const [recommended, setRecommended] = useState(null)
+  const [selections, setSelections] = useState({
+    scope: '', backend: '', frontend: '', apis: [], database: '', api_keys: {},
+  })
+  const [output, setOutput] = useState(null)
+  const [error, setError] = useState('')
+
+  async function handleUnderstand() {
+    if (!idea.trim()) return
+    setStage('recommending')
+    setError('')
+    try {
+      const res = await fetch('/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea }),
+      })
+      if (!res.ok) throw new Error((await res.json()).detail || 'Request failed')
+      const data = await res.json()
+      setSummary(data.summary)
+      setRecommended(data.recommended)
+      setSelections({ ...data.recommended, api_keys: {} })
+      setStage('recommendation')
+    } catch (e) {
+      setError(e.message)
+      setStage('idea')
+    }
+  }
+
+  async function handleGenerate() {
+    setStage('generating')
+    setError('')
+    try {
+      const res = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea, ...selections }),
+      })
+      if (!res.ok) throw new Error((await res.json()).detail || 'Request failed')
+      const data = await res.json()
+      setOutput(data)
+      setStage('output')
+    } catch (e) {
+      setError(e.message)
+      setStage('recommendation')
+    }
+  }
+
+  function handleReset() {
+    setStage('idea')
+    setIdea('')
+    setSummary('')
+    setRecommended(null)
+    setSelections({ scope: '', backend: '', frontend: '', apis: [], database: '', api_keys: {} })
+    setOutput(null)
+    setError('')
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app">
+      <header className="app-header">
+        <h1>CodeGarden</h1>
+        <p className="app-tagline">Grow your idea into a build-ready blueprint</p>
+      </header>
 
-      <div className="ticks"></div>
+      {error && <div className="error-banner">{error}</div>}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {stage === 'idea' && (
+        <IdeaInput idea={idea} onChange={setIdea} onSubmit={handleUnderstand} />
+      )}
+      {stage === 'recommending' && (
+        <LoadingState message="Understanding your idea..." />
+      )}
+      {stage === 'generating' && (
+        <LoadingState stages={GENERATE_STAGES} cycleInterval={6000} />
+      )}
+    </div>
   )
 }
-
-export default App
