@@ -1,8 +1,9 @@
+import json
 import os
 from openai import OpenAI
 
 
-def generate_growth_check(prd: str, selections: dict) -> str:
+def generate_growth_check(prd: str, selections: dict) -> dict:
     client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
     apis_str = ", ".join(selections["apis"]) if selections["apis"] else "none"
@@ -14,29 +15,24 @@ def generate_growth_check(prd: str, selections: dict) -> str:
     response = client.chat.completions.create(
         model="gpt-4o",
         temperature=0.3,
+        response_format={"type": "json_object"},
         messages=[
             {
                 "role": "system",
                 "content": (
-                    "You are a senior software architect reviewing a project blueprint. "
-                    "Produce a Growth Check — a concise, honest evaluation of the stack and design choices.\n\n"
-                    "Format your output in markdown exactly like this:\n\n"
-                    "## Growth Check\n\n"
-                    "### ✅ Good Choices\n"
-                    "- **[Choice]:** [Why it's a good fit for this specific system]\n"
-                    "(2-4 items)\n\n"
-                    "### ⚠️ Warnings\n"
-                    "- **[Concern]:** [What could go wrong and why]\n"
-                    "(1-3 items)\n\n"
-                    "### ❌ Missing Components\n"
-                    "- **[Missing thing]:** [What it is and why this system needs it]\n"
-                    "(1-3 items — only flag genuinely missing pieces, not nice-to-haves)\n\n"
+                    "You are a senior software architect reviewing a project blueprint.\n"
+                    "Produce a structured Growth Check as JSON with exactly this shape:\n"
+                    "{\n"
+                    '  "good": [{"title": "...", "detail": "..."}],\n'
+                    '  "warnings": [{"title": "...", "detail": "..."}],\n'
+                    '  "missing": [{"title": "...", "detail": "..."}]\n'
+                    "}\n\n"
                     "Rules:\n"
-                    "- Be specific to THIS system, not generic advice\n"
-                    "- ✅ items explain WHY this choice fits (not just 'FastAPI is fast')\n"
-                    "- ⚠️ items name concrete failure modes\n"
-                    "- ❌ items flag things actually missing (auth if users exist, rate limiting if external APIs used)\n"
-                    "- Output ONLY the markdown. No preamble."
+                    '- "good": 2–4 items. title = the choice name (e.g. "FastAPI + async"). detail = 1–2 sentences explaining why it fits THIS specific system.\n'
+                    '- "warnings": 1–3 items. title = short concern label. detail = concrete failure mode for this system.\n'
+                    '- "missing": 1–3 items. title = missing piece. detail = what it is and why this system needs it. Only flag genuinely missing pieces, not nice-to-haves.\n'
+                    "- Be specific to THIS system, not generic advice.\n"
+                    "- Output ONLY the JSON object. No preamble, no markdown."
                 ),
             },
             {
@@ -46,4 +42,7 @@ def generate_growth_check(prd: str, selections: dict) -> str:
         ],
     )
 
-    return response.choices[0].message.content
+    try:
+        return json.loads(response.choices[0].message.content)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Growth check received invalid JSON from LLM: {e}")

@@ -5,8 +5,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/recommend': 'http://localhost:8000',
-      '/generate': 'http://localhost:8000',
+      '/recommend': 'http://localhost:8005',
+      '/generate': 'http://localhost:8005',
     },
   },
 })

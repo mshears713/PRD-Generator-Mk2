@@ -5,6 +5,8 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from pipeline.recommender import get_recommendation
+from pipeline.context_advisor import get_context_advice
+from pipeline.option_advisor import get_all_option_advice
 from pipeline.normalizer import normalize
 from pipeline.analyzer import analyze
 from pipeline.prd_gen import generate_prd
@@ -25,6 +27,7 @@ app.add_middleware(
 
 class RecommendRequest(BaseModel):
     idea: str
+    constraints: dict = {}
 
 
 class GenerateRequest(BaseModel):
@@ -42,7 +45,12 @@ def recommend(req: RecommendRequest):
     if not os.getenv("OPENAI_API_KEY"):
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
     try:
-        return get_recommendation(req.idea)
+        result = get_recommendation(req.idea, req.constraints)
+        advice = get_context_advice(req.idea, req.constraints, result.get("recommended", {}))
+        option_advice = get_all_option_advice(req.idea, req.constraints, result.get("recommended", {}))
+        result["architecture"] = option_advice
+        result["deployment"] = advice.get("deployment")
+        return result
     except ValueError as e:
         raise HTTPException(status_code=502, detail=f"LLM response error: {e}")
 

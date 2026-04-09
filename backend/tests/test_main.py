@@ -8,13 +8,63 @@ from fastapi.testclient import TestClient
 
 
 FAKE_RECOMMENDATION = {
-    "summary": "A task manager for remote teams.",
+    "system_understanding": "A task manager for remote teams.",
     "recommended": {
         "scope": "fullstack",
         "backend": "fastapi",
         "frontend": "react",
         "apis": [],
         "database": "postgres",
+    },
+}
+
+FAKE_ADVICE = {
+    "architecture": {
+        "scope": {"choice": "fullstack", "reason_for_recommendation": "test", "benefits": [], "drawbacks": []},
+        "backend": {"choice": "fastapi", "reason_for_recommendation": "test", "benefits": [], "drawbacks": []},
+        "frontend": {"choice": "react", "reason_for_recommendation": "test", "benefits": [], "drawbacks": []},
+        "database": {"choice": "postgres", "reason_for_recommendation": "test", "benefits": [], "drawbacks": []},
+    },
+    "deployment": [
+        {"name": "Render", "value": "render", "recommended": True, "benefits": [], "drawbacks": [], "sponsored": True,
+         "sponsor_info": {"why_use": [], "bonus": ""}},
+        {"name": "AWS", "value": "aws", "recommended": False, "benefits": [], "drawbacks": [], "sponsored": False},
+        {"name": "Self-hosted", "value": "self", "recommended": False, "benefits": [], "drawbacks": [], "sponsored": False},
+    ],
+}
+
+FAKE_OPTION_ADVICE = {
+    "scope": {
+        "recommended": "fullstack",
+        "options": {
+            "frontend": {"relevant": False, "reason": "No UI needed.", "benefits": ["Simple"], "drawbacks": ["No interface"], "learn_more_url": None},
+            "backend":  {"relevant": True,  "reason": "API only.",    "benefits": ["Clean API"], "drawbacks": ["No UI"],       "learn_more_url": None},
+            "fullstack":{"relevant": True,  "reason": "Full control.","benefits": ["End-to-end"],"drawbacks": ["More work"],   "learn_more_url": None},
+        },
+    },
+    "backend": {
+        "recommended": "fastapi",
+        "options": {
+            "fastapi": {"relevant": True,  "reason": "Python fits.", "benefits": ["Async"], "drawbacks": ["GIL"],          "learn_more_url": "https://fastapi.tiangolo.com/"},
+            "node":    {"relevant": True,  "reason": "Alternative.", "benefits": ["npm"],   "drawbacks": ["Less Python"],  "learn_more_url": "https://nodejs.org/en/docs"},
+            "none":    {"relevant": False, "reason": "Needs server.","benefits": ["Simple"],"drawbacks": ["No backend"],   "learn_more_url": None},
+        },
+    },
+    "frontend": {
+        "recommended": "react",
+        "options": {
+            "react":   {"relevant": True,  "reason": "Rich UI.",     "benefits": ["Components"], "drawbacks": ["Bundle size"], "learn_more_url": "https://react.dev/"},
+            "static":  {"relevant": True,  "reason": "Lightweight.", "benefits": ["Fast"],       "drawbacks": ["No state"],   "learn_more_url": None},
+            "none":    {"relevant": False, "reason": "Needs UI.",    "benefits": ["Headless"],   "drawbacks": ["No UI"],      "learn_more_url": None},
+        },
+    },
+    "database": {
+        "recommended": "postgres",
+        "options": {
+            "postgres": {"relevant": True,  "reason": "Reliable.",    "benefits": ["ACID"], "drawbacks": ["Migrations"], "learn_more_url": "https://www.postgresql.org/docs/"},
+            "firebase": {"relevant": False, "reason": "Overkill.",    "benefits": ["RT sync"], "drawbacks": ["Lock-in"], "learn_more_url": "https://firebase.google.com/docs"},
+            "none":     {"relevant": False, "reason": "Needs storage.","benefits": ["Simple"],  "drawbacks": ["No persist"],"learn_more_url": None},
+        },
     },
 }
 
@@ -36,12 +86,16 @@ def get_client():
 
 def test_recommend_returns_200():
     with patch("main.get_recommendation", return_value=FAKE_RECOMMENDATION):
-        client = get_client()
-        response = client.post("/recommend", json={"idea": "A task manager"})
+        with patch("main.get_context_advice", return_value=FAKE_ADVICE):
+            with patch("main.get_all_option_advice", return_value=FAKE_OPTION_ADVICE):
+                client = get_client()
+                response = client.post("/recommend", json={"idea": "A task manager"})
     assert response.status_code == 200
     data = response.json()
-    assert "summary" in data
+    assert "system_understanding" in data
     assert "recommended" in data
+    assert "architecture" in data
+    assert "deployment" in data
 
 
 def test_generate_returns_200():
@@ -49,7 +103,7 @@ def test_generate_returns_200():
         patch("main.normalize", return_value={"system_name": "TeamTask", "purpose": "test"}),
         patch("main.analyze", return_value={"components": [], "data_flow": [], "dependencies": [], "risks": []}),
         patch("main.generate_prd", return_value="# PRD\n## Overview\ntest\n## Architecture\nx\n## Components\nx\n## API Usage\nx\n## Database Design\nx\n## Test Cases\nx"),
-        patch("main.generate_growth_check", return_value="## Growth Check\n✅ good\n⚠️ warn\n❌ missing"),
+        patch("main.generate_growth_check", return_value={"good": [{"title": "FastAPI", "detail": "Fits well"}], "warnings": [{"title": "Cold starts", "detail": "May delay first request"}], "missing": [{"title": "Rate limiting", "detail": "Needed for external APIs"}]}),
     ):
         client = get_client()
         response = client.post("/generate", json=GENERATE_PAYLOAD)
@@ -65,11 +119,23 @@ def test_generate_env_contains_openrouter_key():
         patch("main.normalize", return_value={}),
         patch("main.analyze", return_value={}),
         patch("main.generate_prd", return_value="# PRD"),
-        patch("main.generate_growth_check", return_value="## Growth Check\n✅ good"),
+        patch("main.generate_growth_check", return_value={"good": [{"title": "FastAPI", "detail": "Fits well"}], "warnings": [], "missing": []}),
     ):
         client = get_client()
         response = client.post("/generate", json=GENERATE_PAYLOAD)
     assert "OPENROUTER_API_KEY=sk-test" in response.json()["env"]
+
+
+def test_recommend_returns_architecture_and_deployment():
+    with patch("main.get_recommendation", return_value=FAKE_RECOMMENDATION):
+        with patch("main.get_context_advice", return_value=FAKE_ADVICE):
+            with patch("main.get_all_option_advice", return_value=FAKE_OPTION_ADVICE):
+                client = get_client()
+                response = client.post("/recommend", json={"idea": "A task manager"})
+    data = response.json()
+    assert "architecture" in data
+    assert "deployment" in data
+    assert len(data["deployment"]) == 3
 
 
 def test_recommend_missing_openai_key_returns_500():
