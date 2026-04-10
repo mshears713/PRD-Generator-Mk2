@@ -36,6 +36,9 @@ def analyze(normalized: dict) -> dict:
                     "- data_flow: 3-6 steps showing how data moves for the primary use case\n"
                     "- dependencies: list all non-obvious inter-component dependencies\n"
                     "- risks: 2-4 realistic technical risks specific to this system\n"
+                    "COMPONENT PRECISION\n"
+                    "- Components must map directly to real parts of the system (API layer, frontend UI, database, background worker, file store, etc.)\n"
+                    "- Avoid generic components like \"Backend\" — be specific (e.g. \"FastAPI Service\")\n\n"
                     "- Output ONLY valid JSON. No markdown fences."
                 ),
             },

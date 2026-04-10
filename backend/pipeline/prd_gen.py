@@ -38,6 +38,9 @@ def generate_prd(normalized: dict, architecture: dict) -> str:
                     "| Test | Input | Expected Output | Type |\n"
                     "|------|-------|-----------------|------|\n"
                     "| ... | ... | ... | unit/integration/e2e |\n\n"
+                    "IMPLEMENTATION FOCUS\n"
+                    "- Each component must contain enough detail for a developer to begin implementation\n"
+                    "- Avoid vague descriptions — include specific behaviors, inputs, and outputs\n\n"
                     "Output ONLY the markdown. No preamble, no closing remarks."
                 ),
             },

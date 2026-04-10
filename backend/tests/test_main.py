@@ -16,6 +16,7 @@ FAKE_RECOMMENDATION = {
         "apis": [],
         "database": "postgres",
     },
+    "confidence": 0.85,
 }
 
 FAKE_ADVICE = {
@@ -37,33 +38,33 @@ FAKE_OPTION_ADVICE = {
     "scope": {
         "recommended": "fullstack",
         "options": {
-            "frontend": {"relevant": False, "reason": "No UI needed.", "benefits": ["Simple"], "drawbacks": ["No interface"], "learn_more_url": None},
-            "backend":  {"relevant": True,  "reason": "API only.",    "benefits": ["Clean API"], "drawbacks": ["No UI"],       "learn_more_url": None},
-            "fullstack":{"relevant": True,  "reason": "Full control.","benefits": ["End-to-end"],"drawbacks": ["More work"],   "learn_more_url": None},
+            "frontend": {"fit_score": 75, "relevant": False, "reason": "No UI needed.", "benefits": ["Simple"], "drawbacks": ["No interface"], "learn_more_url": None},
+            "backend":  {"fit_score": 75, "relevant": True,  "reason": "API only.",    "benefits": ["Clean API"], "drawbacks": ["No UI"],       "learn_more_url": None},
+            "fullstack":{"fit_score": 75, "relevant": True,  "reason": "Full control.","benefits": ["End-to-end"],"drawbacks": ["More work"],   "learn_more_url": None},
         },
     },
     "backend": {
         "recommended": "fastapi",
         "options": {
-            "fastapi": {"relevant": True,  "reason": "Python fits.", "benefits": ["Async"], "drawbacks": ["GIL"],          "learn_more_url": "https://fastapi.tiangolo.com/"},
-            "node":    {"relevant": True,  "reason": "Alternative.", "benefits": ["npm"],   "drawbacks": ["Less Python"],  "learn_more_url": "https://nodejs.org/en/docs"},
-            "none":    {"relevant": False, "reason": "Needs server.","benefits": ["Simple"],"drawbacks": ["No backend"],   "learn_more_url": None},
+            "fastapi": {"fit_score": 75, "relevant": True,  "reason": "Python fits.", "benefits": ["Async"], "drawbacks": ["GIL"],          "learn_more_url": "https://fastapi.tiangolo.com/"},
+            "node":    {"fit_score": 75, "relevant": True,  "reason": "Alternative.", "benefits": ["npm"],   "drawbacks": ["Less Python"],  "learn_more_url": "https://nodejs.org/en/docs"},
+            "none":    {"fit_score": 75, "relevant": False, "reason": "Needs server.","benefits": ["Simple"],"drawbacks": ["No backend"],   "learn_more_url": None},
         },
     },
     "frontend": {
         "recommended": "react",
         "options": {
-            "react":   {"relevant": True,  "reason": "Rich UI.",     "benefits": ["Components"], "drawbacks": ["Bundle size"], "learn_more_url": "https://react.dev/"},
-            "static":  {"relevant": True,  "reason": "Lightweight.", "benefits": ["Fast"],       "drawbacks": ["No state"],   "learn_more_url": None},
-            "none":    {"relevant": False, "reason": "Needs UI.",    "benefits": ["Headless"],   "drawbacks": ["No UI"],      "learn_more_url": None},
+            "react":   {"fit_score": 75, "relevant": True,  "reason": "Rich UI.",     "benefits": ["Components"], "drawbacks": ["Bundle size"], "learn_more_url": "https://react.dev/"},
+            "static":  {"fit_score": 75, "relevant": True,  "reason": "Lightweight.", "benefits": ["Fast"],       "drawbacks": ["No state"],   "learn_more_url": None},
+            "none":    {"fit_score": 75, "relevant": False, "reason": "Needs UI.",    "benefits": ["Headless"],   "drawbacks": ["No UI"],      "learn_more_url": None},
         },
     },
     "database": {
         "recommended": "postgres",
         "options": {
-            "postgres": {"relevant": True,  "reason": "Reliable.",    "benefits": ["ACID"], "drawbacks": ["Migrations"], "learn_more_url": "https://www.postgresql.org/docs/"},
-            "firebase": {"relevant": False, "reason": "Overkill.",    "benefits": ["RT sync"], "drawbacks": ["Lock-in"], "learn_more_url": "https://firebase.google.com/docs"},
-            "none":     {"relevant": False, "reason": "Needs storage.","benefits": ["Simple"],  "drawbacks": ["No persist"],"learn_more_url": None},
+            "postgres": {"fit_score": 75, "relevant": True,  "reason": "Reliable.",    "benefits": ["ACID"], "drawbacks": ["Migrations"], "learn_more_url": "https://www.postgresql.org/docs/"},
+            "firebase": {"fit_score": 75, "relevant": False, "reason": "Overkill.",    "benefits": ["RT sync"], "drawbacks": ["Lock-in"], "learn_more_url": "https://firebase.google.com/docs"},
+            "none":     {"fit_score": 75, "relevant": False, "reason": "Needs storage.","benefits": ["Simple"],  "drawbacks": ["No persist"],"learn_more_url": None},
         },
     },
 }
@@ -96,6 +97,7 @@ def test_recommend_returns_200():
     assert "recommended" in data
     assert "architecture" in data
     assert "deployment" in data
+    assert "confidence" in data
 
 
 def test_generate_returns_200():

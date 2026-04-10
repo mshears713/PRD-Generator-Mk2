@@ -35,6 +35,7 @@ FAKE_RESPONSE = {
         "apis": "No external APIs required; all data is internal",
         "database": "PostgreSQL suits structured relational task/user data",
     },
+    "confidence": 0.85,
 }
 
 
@@ -169,3 +170,18 @@ def test_none_constraints_still_works():
         MockClient.return_value.chat.completions.create.return_value = make_openai_response(FAKE_RESPONSE)
         result = get_recommendation("anything", None)
     assert "system_understanding" in result
+
+
+def test_confidence_is_in_result():
+    with patch("pipeline.recommender.OpenAI") as MockClient:
+        MockClient.return_value.chat.completions.create.return_value = make_openai_response(FAKE_RESPONSE)
+        result = get_recommendation("An AI writing tool")
+    assert "confidence" in result
+
+
+def test_confidence_is_a_valid_float():
+    with patch("pipeline.recommender.OpenAI") as MockClient:
+        MockClient.return_value.chat.completions.create.return_value = make_openai_response(FAKE_RESPONSE)
+        result = get_recommendation("An AI writing tool")
+    assert isinstance(result["confidence"], float)
+    assert 0.0 <= result["confidence"] <= 1.0

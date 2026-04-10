@@ -32,6 +32,9 @@ def generate_growth_check(prd: str, selections: dict) -> dict:
                     '- "warnings": 1–3 items. title = short concern label. detail = concrete failure mode for this system.\n'
                     '- "missing": 1–3 items. title = missing piece. detail = what it is and why this system needs it. Only flag genuinely missing pieces, not nice-to-haves.\n'
                     "- Be specific to THIS system, not generic advice.\n"
+                    "CONTEXT AWARENESS\n"
+                    "- If the system design shows signs of uncertainty or weak assumptions, reflect that in warnings\n"
+                    "- Prioritize identifying real failure modes over generic concerns\n\n"
                     "- Output ONLY the JSON object. No preamble, no markdown."
                 ),
             },

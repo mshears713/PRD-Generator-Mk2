@@ -124,6 +124,13 @@ def get_context_advice(idea: str, constraints: dict, recommended: dict) -> dict:
         "- Maximum control OR cost-sensitive at sustained scale → Self-hosted recommended\n"
         "- When unclear, default to Render\n\n"
         "Exactly ONE deployment option must have \"recommended\": true. The others must be false.\n"
+        "PROJECT-SPECIFIC REQUIREMENT\n\n"
+        "Every benefit and drawback must reference at least one of:\n"
+        "- user scale\n"
+        "- execution model\n"
+        "- data persistence\n"
+        "- system complexity\n\n"
+        "If a statement could apply to any project, it is invalid.\n\n"
         "Output ONLY valid JSON. No markdown fences. No extra text."
     )
 

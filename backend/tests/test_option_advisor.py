@@ -21,6 +21,7 @@ FAKE_CONSTRAINTS = {
 }
 
 FAKE_OPTION_RESULT = {
+    "fit_score": 75,
     "relevant": True,
     "reason": "Fits the project well.",
     "benefits": ["Benefit one", "Benefit two"],
@@ -102,3 +103,45 @@ def test_empty_recommended_uses_unknown():
         MockClient.return_value.chat.completions.create.return_value = make_openai_response(FAKE_OPTION_RESULT)
         result = get_all_option_advice("A todo app", FAKE_CONSTRAINTS, {})
     assert result["scope"]["recommended"] == ""
+
+
+def test_each_option_has_fit_score():
+    with patch("pipeline.option_advisor.OpenAI") as MockClient:
+        MockClient.return_value.chat.completions.create.return_value = make_openai_response(FAKE_OPTION_RESULT)
+        result = get_all_option_advice("An AI writing tool", FAKE_CONSTRAINTS, FAKE_RECOMMENDED)
+    for field, field_data in result.items():
+        for value, option in field_data["options"].items():
+            assert "fit_score" in option, f"{field}/{value} missing fit_score"
+
+
+def test_relevant_false_when_fit_score_below_20():
+    low_score_result = {
+        "fit_score": 10,
+        "relevant": True,  # LLM says true but backend should override
+        "reason": "Poor fit.",
+        "benefits": ["One benefit"],
+        "drawbacks": ["One drawback"],
+    }
+    with patch("pipeline.option_advisor.OpenAI") as MockClient:
+        MockClient.return_value.chat.completions.create.return_value = make_openai_response(low_score_result)
+        result = get_all_option_advice("An AI writing tool", FAKE_CONSTRAINTS, FAKE_RECOMMENDED)
+    # All options will have fit_score=10 (same mock for all calls), so all should be relevant=False
+    for field, field_data in result.items():
+        for value, option in field_data["options"].items():
+            assert option["relevant"] is False, f"{field}/{value} should be relevant=False with fit_score=10"
+
+
+def test_relevant_true_when_fit_score_at_threshold():
+    threshold_result = {
+        "fit_score": 20,
+        "relevant": False,  # LLM says false but backend should override to True
+        "reason": "Just at threshold.",
+        "benefits": ["Benefit"],
+        "drawbacks": ["Drawback"],
+    }
+    with patch("pipeline.option_advisor.OpenAI") as MockClient:
+        MockClient.return_value.chat.completions.create.return_value = make_openai_response(threshold_result)
+        result = get_all_option_advice("An AI writing tool", FAKE_CONSTRAINTS, FAKE_RECOMMENDED)
+    for field, field_data in result.items():
+        for value, option in field_data["options"].items():
+            assert option["relevant"] is True, f"{field}/{value} should be relevant=True with fit_score=20"

@@ -51,15 +51,12 @@ def _evaluate_option(
         f"\nEvaluate this option for the project's {field}: {name} ({value})\n\n"
         "Return JSON:\n"
         "{\n"
-        '  "relevant": <true|false — is this a reasonable option to consider for this project?>,\n'
+        '  "fit_score": <integer 0-100 based on the scoring rubric>,\n'
+        '  "relevant": <true if fit_score >= 20, false if fit_score < 20>,\n'
         '  "reason": "<one sentence: why this does or does not fit this specific project>",\n'
         '  "benefits": ["<2-3 project-specific benefits>"],\n'
         '  "drawbacks": ["<1-2 project-specific drawbacks>"]\n'
-        "}\n\n"
-        "Rules:\n"
-        "- relevant=false only for options that clearly don't fit (e.g. 'No Backend' for an AI processing tool)\n"
-        "- Every benefit and drawback must be specific to THIS project, not generic\n"
-        "- Output ONLY valid JSON. No markdown fences. No extra text."
+        "}\n"
     )
 
     response = client.chat.completions.create(
@@ -70,8 +67,38 @@ def _evaluate_option(
             {
                 "role": "system",
                 "content": (
-                    "You are a software architect evaluating technology choices for a specific project. "
-                    "Be concise and project-specific."
+                    "You are a software architect evaluating technology choices for a specific project.\n\n"
+                    "Your job is to determine how well a given option fits THIS specific system.\n\n"
+                    "Be concise, decisive, and project-specific.\n\n"
+                    "---\n\n"
+                    "EVALUATION RULES\n\n"
+                    "1. Fit score (0–100)\n"
+                    "- 90–100: Excellent fit — aligns cleanly with constraints and system behavior\n"
+                    "- 70–89: Strong fit — good choice with minor tradeoffs\n"
+                    "- 40–69: Acceptable — works, but not ideal\n"
+                    "- 20–39: Weak fit — significant mismatch\n"
+                    "- 0–19: Poor fit — should not be used\n\n"
+                    "2. Relevance\n"
+                    "- If fit_score < 20 → relevant = false\n"
+                    "- Otherwise → relevant = true\n\n"
+                    "3. No generic statements\n"
+                    "BAD: \"React is popular\"\n"
+                    "GOOD: \"React helps manage dynamic UI state for this multi-step workflow interface\"\n\n"
+                    "4. Tie reasoning to:\n"
+                    "- user scale\n"
+                    "- data types\n"
+                    "- execution model\n"
+                    "- app shape\n"
+                    "- recommended stack context\n\n"
+                    "5. Be honest\n"
+                    "- Do not inflate scores\n"
+                    "- If something is a bad fit, score it low\n\n"
+                    "---\n\n"
+                    "IMPORTANT\n\n"
+                    "- \"relevant\" must match the fit_score rule (< 20 → false, otherwise → true)\n"
+                    "- benefits/drawbacks must be specific to THIS system\n"
+                    "- do not restate the option — explain its effect on the system\n"
+                    "- Output ONLY valid JSON. No markdown. No extra text."
                 ),
             },
             {"role": "user", "content": user_content},
@@ -79,7 +106,10 @@ def _evaluate_option(
     )
 
     try:
-        return json.loads(response.choices[0].message.content)
+        result = json.loads(response.choices[0].message.content)
+        result.setdefault("fit_score", 50)
+        result["relevant"] = result["fit_score"] >= 20
+        return result
     except json.JSONDecodeError as e:
         raise ValueError(f"option_advisor received invalid JSON for {field}/{value}: {e}")
 

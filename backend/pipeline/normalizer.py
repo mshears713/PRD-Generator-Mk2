@@ -36,6 +36,10 @@ def normalize(idea: str, selections: dict) -> dict:
                     "- core_features: 4-6 items, each a concrete capability\n"
                     "- constraints: derive from the stack (e.g. 'FastAPI backend requires Python 3.10+')\n"
                     "- assumptions_removed: min 2 items showing how you clarified vague language\n"
+                    "CLARITY REQUIREMENT\n"
+                    "- Replace all vague terms with concrete system behavior\n"
+                    "- If the idea is ambiguous, make a reasonable assumption and state it clearly\n"
+                    "- Avoid phrases like \"manage\", \"handle\", \"support\" without specifying how\n\n"
                     "- Output ONLY valid JSON. No markdown fences."
                 ),
             },
