@@ -150,7 +150,7 @@ def generate(req: GenerateRequest):
         normalized = normalize(req.idea, selections)
         architecture = analyze(normalized)
         prd = generate_prd(normalized, architecture)
-        growth_check = generate_growth_check(prd, selections)
+        growth_check = generate_growth_check(prd, selections, normalized)
     except ValueError as e:
         raise HTTPException(status_code=502, detail=f"LLM response error: {e}")
 
