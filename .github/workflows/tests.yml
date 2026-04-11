@@ -22,4 +22,4 @@ jobs:
       - name: Run tests
         env:
           PYTEST_RUNNING: "1"
-        run: pytest tests/
+        run: pytest tests/ backend/tests/

@@ -13,7 +13,10 @@ FAKE_NORMALIZED = {
     "core_features": ["Create tasks", "Assign tasks"],
     "user_types": ["admin", "member"],
     "constraints": ["FastAPI"],
-    "assumptions_removed": ["vague → specific"],
+    "assumptions": ["Assuming single-user load"],
+    "unknowns": ["Latency expectations unspecified"],
+    "input_output": ["Step 1: User submits task → API stores it"],
+    "data_model": ["Task: id, title"],
 }
 
 FAKE_ARCHITECTURE = {

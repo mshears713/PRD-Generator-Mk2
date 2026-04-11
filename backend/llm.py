@@ -410,6 +410,23 @@ def _fake_normalizer(input_data: dict) -> dict:
     idea = input_data.get("idea", "")
     selections = input_data.get("selections") or {}
     system_name = "".join(word.capitalize() for word in idea.split()[:3]) or "Project"
+    backend = selections.get("backend", "none")
+    database = selections.get("database", "none")
+    has_db = database != "none"
+    io_flow = [
+        "Step 1: User submits text input via frontend",
+        f"Step 2: {backend.capitalize() if backend != 'none' else 'Backend'} endpoint validates request and calls core logic",
+        "Step 3: Core logic processes input deterministically",
+        f"Step 4: {'Result stored in Postgres and ' if has_db else ''}response returned as JSON",
+    ]
+    data_model = [
+        "Request: id, user_input, created_at",
+    ]
+    if has_db:
+        data_model.append("Result: id, request_id, output, created_at (stored in Postgres)")
+    else:
+        data_model.append("Result: transient in-memory output only")
+
     return {
         "system_name": system_name,
         "purpose": f"Provide a concrete implementation of '{idea}' for the target users.",
@@ -417,8 +434,22 @@ def _fake_normalizer(input_data: dict) -> dict:
             "Primary user workflow", "Structured input validation", "Deterministic output formatting", "Basic error handling"
         ],
         "user_types": ["Primary user"],
-        "constraints": [f"Stack selection: {selections.get('backend', 'none')} backend"],
-        "assumptions_removed": ["Vague scope → defined core workflow", "Unclear storage → explicit persistence choice"],
+        "input_output": io_flow,
+        "data_model": data_model,
+        "constraints": [
+            f"Backend: {backend} defines API layer",
+            f"Database: {database} selected",
+            f"Frontend: {selections.get('frontend', 'none')} for user input",
+        ],
+        "assumptions": [
+            "Assuming text-based user input only",
+            "Assuming single-user concurrency",
+            "Assuming no authentication unless added later",
+        ],
+        "unknowns": [
+            "Scaling expectations not provided",
+            "Latency budget unspecified",
+        ],
     }
 
 
@@ -437,6 +468,16 @@ def _fake_analyzer(input_data: dict) -> dict:
         ],
         "dependencies": ["API Layer calls Core Service for processing"],
         "risks": ["Ambiguous requirements could lead to rework", "Scaling assumptions may need revision"],
+        "failure_points": [
+            "API layer returns 500 if downstream LLM/logic errors",
+            "Database unavailable leads to failed persistence (if enabled)",
+        ],
+        "minimal_mvp_components": [
+            "FastAPI endpoint for primary action",
+            "Core processing function",
+            "Result persistence or in-memory store",
+            "Basic UI or API client for submission",
+        ],
     }
 
 
@@ -489,6 +530,12 @@ def _fake_growth(input_data: dict) -> dict:
         "missing": [
             {"title": "Monitoring", "detail": "Add basic logging/metrics to detect failures early."},
         ],
+        "risk_score": 45,
+        "quick_wins": [
+            "Add request/response logging to FastAPI",
+            "Set 30s timeout around external calls",
+        ],
+        "blockers": [],
     }
 
 

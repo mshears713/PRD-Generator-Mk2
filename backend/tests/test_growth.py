@@ -22,6 +22,9 @@ def test_returns_structured_dict():
     assert "good" in result
     assert "warnings" in result
     assert "missing" in result
+    assert "risk_score" in result
+    assert "quick_wins" in result
+    assert "blockers" in result
 
 
 def test_good_items_have_title_and_detail():
@@ -44,3 +47,6 @@ def test_all_sections_are_lists():
     assert isinstance(result["good"], list)
     assert isinstance(result["warnings"], list)
     assert isinstance(result["missing"], list)
+    assert isinstance(result["quick_wins"], list)
+    assert len(result["quick_wins"]) <= 3
+    assert isinstance(result["blockers"], list)
