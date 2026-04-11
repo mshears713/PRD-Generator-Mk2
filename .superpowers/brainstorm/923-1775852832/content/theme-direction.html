@@ -1,0 +1,58 @@
+<h2>Which theme direction for the HeroUI migration?</h2>
+<p class="subtitle">Both keep the same layout — just the color foundation changes. This affects how we configure HeroUI's theme.</p>
+
+<div class="split" style="gap: 1.5rem; margin-top: 1.5rem;">
+
+  <!-- Option A: Keep current palette -->
+  <div class="option" data-choice="a" onclick="toggleSelect(this)" style="padding: 0; overflow: hidden; border-radius: 12px;">
+    <div style="background: #0f0f11; padding: 1.5rem; height: 100%; border-radius: 12px; border: 2px solid transparent;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+        <div class="letter" style="position: static; width: 24px; height: 24px; font-size: 0.75rem; flex-shrink: 0;">A</div>
+        <span style="color: #e8e8f0; font-weight: 600; font-size: 0.95rem;">Keep current palette</span>
+      </div>
+      <p style="color: #888898; font-size: 0.78rem; margin-bottom: 1.25rem; line-height: 1.5;">Map your existing <code style="background:#1a1a1f;padding:1px 4px;border-radius:3px;color:#a78bfa">#7c6cf0</code> accent and deep-dark backgrounds into HeroUI's theme config. Components look HeroUI-styled but feel like CodeGarden.</p>
+
+      <!-- Mini mockup: Idea stage -->
+      <div style="background: #1a1a1f; border: 1px solid #2a2a32; border-radius: 8px; padding: 1rem;">
+        <p style="color: #888898; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem;">Describe your idea</p>
+        <div style="background: #0f0f11; border: 1px solid #7c6cf0; border-radius: 6px; padding: 0.6rem; height: 56px; color: #888898; font-size: 0.78rem;">A task manager for remote teams...</div>
+        <div style="background: linear-gradient(135deg, #7c6cf0, #a78bfa); color: #fff; border-radius: 6px; padding: 0.5rem; text-align: center; font-size: 0.82rem; font-weight: 600; margin-top: 0.75rem; cursor: pointer;">Understand My Idea →</div>
+      </div>
+
+      <!-- Mini chip row -->
+      <div style="margin-top: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.4rem;">
+        <span style="background: rgba(124,108,240,0.15); border: 1px solid #7c6cf0; color: #7c6cf0; border-radius: 999px; padding: 0.2rem 0.7rem; font-size: 0.75rem; font-weight: 600;">Just me ★</span>
+        <span style="background: #0f0f11; border: 1px solid #2a2a32; color: #888898; border-radius: 999px; padding: 0.2rem 0.7rem; font-size: 0.75rem;">Small group</span>
+        <span style="background: #0f0f11; border: 1px solid #2a2a32; color: #888898; border-radius: 999px; padding: 0.2rem 0.7rem; font-size: 0.75rem;">Larger audience</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B: HeroUI default dark -->
+  <div class="option" data-choice="b" onclick="toggleSelect(this)" style="padding: 0; overflow: hidden; border-radius: 12px;">
+    <div style="background: #18181b; padding: 1.5rem; height: 100%; border-radius: 12px; border: 2px solid transparent;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+        <div class="letter" style="position: static; width: 24px; height: 24px; font-size: 0.75rem; flex-shrink: 0;">B</div>
+        <span style="color: #fafafa; font-weight: 600; font-size: 0.95rem;">HeroUI default dark</span>
+      </div>
+      <p style="color: #71717a; font-size: 0.78rem; margin-bottom: 1.25rem; line-height: 1.5;">Let HeroUI's built-in dark theme take over. Zinc backgrounds, blue/violet default accents. More "off-the-shelf" but polished and consistent out of the box.</p>
+
+      <!-- Mini mockup: Idea stage -->
+      <div style="background: #27272a; border: 1px solid #3f3f46; border-radius: 12px; padding: 1rem;">
+        <p style="color: #a1a1aa; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem;">Describe your idea</p>
+        <div style="background: #18181b; border: 2px solid #6d28d9; border-radius: 10px; padding: 0.6rem; height: 56px; color: #71717a; font-size: 0.78rem;">A task manager for remote teams...</div>
+        <div style="background: #6d28d9; color: #fff; border-radius: 10px; padding: 0.5rem; text-align: center; font-size: 0.82rem; font-weight: 600; margin-top: 0.75rem; cursor: pointer;">Understand My Idea →</div>
+      </div>
+
+      <!-- Mini chip row -->
+      <div style="margin-top: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.4rem;">
+        <span style="background: #4c1d95; border: 1px solid #7c3aed; color: #ddd6fe; border-radius: 999px; padding: 0.2rem 0.7rem; font-size: 0.75rem; font-weight: 600;">Just me ★</span>
+        <span style="background: #3f3f46; border: 1px solid #52525b; color: #a1a1aa; border-radius: 999px; padding: 0.2rem 0.7rem; font-size: 0.75rem;">Small group</span>
+        <span style="background: #3f3f46; border: 1px solid #52525b; color: #a1a1aa; border-radius: 999px; padding: 0.2rem 0.7rem; font-size: 0.75rem;">Larger audience</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top: 1.5rem; font-size: 0.8rem;">Both options use HeroUI components. The difference is how much custom theming we write in the config.</p>

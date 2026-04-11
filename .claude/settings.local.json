@@ -1,0 +1,13 @@
+{
+  "enabledMcpjsonServers": [
+    "heroui-react",
+    "filesystem",
+    "sequential-thinking",
+    "github"
+  ],
+  "permissions": {
+    "allow": [
+      "Bash(node:*what is this disclodure thing your doing niow?)"
+    ]
+  }
+}

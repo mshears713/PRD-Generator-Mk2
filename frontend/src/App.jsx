@@ -111,9 +111,9 @@ export default function App() {
     <div className="max-w-[1100px] mx-auto px-6 py-8 pb-16">
       <header className="text-center mb-12">
         <h1 className="text-4xl font-bold bg-gradient-to-br from-accent to-violet-400 bg-clip-text text-transparent">
-          CodeGarden
+          PRD Generator
         </h1>
-        <p className="text-muted mt-1 text-base">Grow your idea into a build-ready blueprint</p>
+        <p className="text-muted mt-1 text-base">Turn your idea into a build-ready blueprint</p>
       </header>
 
       {error && (

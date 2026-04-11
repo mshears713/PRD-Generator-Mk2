@@ -1,0 +1,112 @@
+<h2>Design Section 2: Component Mapping</h2>
+<p class="subtitle">Every current CSS class / custom component → its HeroUI or Tailwind replacement</p>
+
+<div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;">
+
+  <!-- App shell -->
+  <div>
+    <p class="label" style="margin-bottom: 0.5rem;">App Shell (App.jsx)</p>
+    <table style="width:100%; border-collapse:collapse; font-size: 0.82rem;">
+      <thead>
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+          <th style="text-align:left; padding: 0.4rem 0.75rem; color: #a1a1aa; font-weight:600; width:40%">Current</th>
+          <th style="text-align:left; padding: 0.4rem 0.75rem; color: #a1a1aa; font-weight:600;">Replacement</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.app wrapper</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">Tailwind: <code>max-w-[1100px] mx-auto px-6 py-8</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.app-header h1 gradient</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">Tailwind: <code>bg-gradient-to-br from-accent to-violet-400 bg-clip-text text-transparent</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.error-banner</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;Alert color="danger"&gt;</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- IdeaInput -->
+  <div>
+    <p class="label" style="margin-bottom: 0.5rem;">IdeaInput.jsx</p>
+    <table style="width:100%; border-collapse:collapse; font-size: 0.82rem;">
+      <thead><tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><th style="text-align:left; padding: 0.4rem 0.75rem; color:#a1a1aa; width:40%">Current</th><th style="text-align:left; padding: 0.4rem 0.75rem; color:#a1a1aa;">Replacement</th></tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.idea-card</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;Card&gt;&lt;Card.Body&gt;</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">&lt;textarea&gt;</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;TextArea&gt;</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.btn-primary</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;Button color="accent" fullWidth&gt;</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- LoadingState -->
+  <div>
+    <p class="label" style="margin-bottom: 0.5rem;">LoadingState.jsx</p>
+    <table style="width:100%; border-collapse:collapse; font-size: 0.82rem;">
+      <thead><tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><th style="text-align:left; padding: 0.4rem 0.75rem; color:#a1a1aa; width:40%">Current</th><th style="text-align:left; padding: 0.4rem 0.75rem; color:#a1a1aa;">Replacement</th></tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.spinner (custom CSS)</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;Spinner color="accent"&gt;</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.loading-state wrapper</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">Tailwind: <code>flex flex-col items-center py-16 gap-4</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- QuickSetupPanel -->
+  <div>
+    <p class="label" style="margin-bottom: 0.5rem;">QuickSetupPanel.jsx — SegmentedControl + ChipGroup → ToggleButtonGroup</p>
+    <table style="width:100%; border-collapse:collapse; font-size: 0.82rem;">
+      <thead><tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><th style="text-align:left; padding: 0.4rem 0.75rem; color:#a1a1aa; width:40%">Current</th><th style="text-align:left; padding: 0.4rem 0.75rem; color:#a1a1aa;">Replacement</th></tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">SegmentedControl</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;ToggleButtonGroup selectionMode="single"&gt;</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">ChipGroup (single)</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;ToggleButtonGroup selectionMode="single"&gt;</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">ChipGroup (multi)</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;ToggleButtonGroup selectionMode="multiple"&gt;</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.qs-block sections</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">Tailwind: bordered div, stacked layout preserved</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- RecommendationPanel + SelectionCards -->
+  <div>
+    <p class="label" style="margin-bottom: 0.5rem;">RecommendationPanel.jsx + SelectionCards.jsx</p>
+    <table style="width:100%; border-collapse:collapse; font-size: 0.82rem;">
+      <thead><tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><th style="text-align:left; padding: 0.4rem 0.75rem; color:#a1a1aa; width:40%">Current</th><th style="text-align:left; padding: 0.4rem 0.75rem; color:#a1a1aa;">Replacement</th></tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.summary-card</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;Card&gt;&lt;Card.Body&gt;</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.system-type-tag</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;Chip size="sm" color="accent" variant="soft"&gt;</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.insight-grid / .insight-grid-3</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">Tailwind: <code>grid grid-cols-1 md:grid-cols-3 gap-4</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.rationale-grid / .rationale-row</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">Tailwind: <code>grid grid-cols-[72px_1fr] gap-3</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.card-btn (single-select)</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;ToggleButton&gt;</code> inside <code>&lt;ToggleButtonGroup&gt;</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.card-rec-badge ★</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;Chip size="sm" color="accent"&gt;</code> inline</td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.card-btn-sponsored ✦</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;Chip size="sm" color="warning"&gt;</code> inline</td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.api-key-input &lt;input&gt;</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;Input type="text"&gt;</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- DecisionCard + DeploymentRow -->
+  <div>
+    <p class="label" style="margin-bottom: 0.5rem;">DecisionCard.jsx + DeploymentRow.jsx</p>
+    <table style="width:100%; border-collapse:collapse; font-size: 0.82rem;">
+      <thead><tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><th style="text-align:left; padding: 0.4rem 0.75rem; color:#a1a1aa; width:40%">Current</th><th style="text-align:left; padding: 0.4rem 0.75rem; color:#a1a1aa;">Replacement</th></tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.decision-card</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;Card&gt;</code> with variant border accent/warning</td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.sponsored-badge</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;Chip color="warning" variant="flat"&gt;</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.dc-columns 2-col grid</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">Tailwind: <code>grid grid-cols-2 gap-3</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">Learn more link</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;Link isExternal&gt;</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- OutputPanel -->
+  <div>
+    <p class="label" style="margin-bottom: 0.5rem;">OutputPanel.jsx — Growth Check gets Accordion treatment</p>
+    <table style="width:100%; border-collapse:collapse; font-size: 0.82rem;">
+      <thead><tr style="border-bottom: 1px solid rgba(255,255,255,0.1);"><th style="text-align:left; padding: 0.4rem 0.75rem; color:#a1a1aa; width:40%">Current</th><th style="text-align:left; padding: 0.4rem 0.75rem; color:#a1a1aa;">Replacement</th></tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.output-section</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;Card&gt;&lt;Card.Body&gt;</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.copy-btn</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;Button variant="bordered" size="sm"&gt;</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">Growth check expand/collapse</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;DisclosureGroup&gt;</code> (one per Good/Warn/Missing column)</td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.env-block &lt;pre&gt;</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">Tailwind: <code>bg-background border border-border rounded-lg p-4 font-mono text-sm</code></td></tr>
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:0.4rem 0.75rem; font-family:monospace; color:#e4e4e7">.btn-secondary "← Start Over"</td><td style="padding:0.4rem 0.75rem; color:#d4d4d8">HeroUI: <code>&lt;Button variant="bordered"&gt;</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top: 1.5rem; font-size: 0.8rem;">All ~670 lines of main.css are accounted for. Does this mapping look right before we move to the file-by-file plan?</p>
