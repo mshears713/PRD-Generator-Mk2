@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -40,7 +41,83 @@ class GenerateRequest(BaseModel):
     api_keys: dict[str, str] = {}
 
 
-@app.post("/recommend")
+class RecommendedStack(BaseModel):
+    scope: str
+    backend: str
+    frontend: str
+    apis: list[str] = []
+    database: str
+
+
+class Rationale(BaseModel):
+    scope: str
+    backend: str
+    frontend: str
+    apis: str
+    database: str
+
+
+class ConstraintImpact(BaseModel):
+    constraint: str
+    impact: str
+
+
+class Confidence(BaseModel):
+    score: int
+    reason: str
+
+
+class OptionEvaluation(BaseModel):
+    fit_score: int
+    confidence: int
+    complexity_cost: str
+    reason: str
+    benefits: list[str]
+    drawbacks: list[str]
+    why_not_recommended: Optional[str] = None
+    learn_more_url: Optional[str] = None
+
+
+class FieldOptions(BaseModel):
+    recommended: str
+    options: dict[str, OptionEvaluation]
+
+
+class ArchitectureAdvice(BaseModel):
+    scope: FieldOptions
+    backend: FieldOptions
+    frontend: FieldOptions
+    database: FieldOptions
+
+
+class DeploymentOption(BaseModel):
+    name: str
+    value: str
+    recommended: bool
+    reason_for_recommendation: str
+    benefits: list[str]
+    drawbacks: list[str]
+    sponsored: Optional[bool] = None
+    sponsor_info: Optional[dict] = None
+
+
+class RecommendResponse(BaseModel):
+    system_understanding: str
+    system_type: str
+    core_system_logic: str
+    key_requirements: list[str]
+    scope_boundaries: list[str]
+    phased_plan: list[str]
+    recommended: RecommendedStack
+    rationale: Rationale
+    constraint_impact: list[ConstraintImpact]
+    assumptions: list[str]
+    confidence: Confidence
+    architecture: Optional[ArchitectureAdvice] = None
+    deployment: Optional[list[DeploymentOption]] = None
+
+
+@app.post("/recommend", response_model=RecommendResponse)
 def recommend(req: RecommendRequest):
     if not os.getenv("OPENAI_API_KEY"):
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")

@@ -52,10 +52,12 @@ def _evaluate_option(
         "Return JSON:\n"
         "{\n"
         '  "fit_score": <integer 0-100 based on the scoring rubric>,\n'
-        '  "relevant": <true if fit_score >= 20, false if fit_score < 20>,\n'
+        '  "confidence": <integer 0-100 indicating how certain you are>,\n'
+        '  "complexity_cost": "low" | "medium" | "high",\n'
         '  "reason": "<one sentence: why this does or does not fit this specific project>",\n'
         '  "benefits": ["<2-3 project-specific benefits>"],\n'
-        '  "drawbacks": ["<1-2 project-specific drawbacks>"]\n'
+        '  "drawbacks": ["<1-2 project-specific drawbacks>"],\n'
+        '  "why_not_recommended": "<required if fit_score < 70; otherwise null>"\n'
         "}\n"
     )
 
@@ -76,26 +78,29 @@ def _evaluate_option(
                     "- 90–100: Excellent fit — aligns cleanly with constraints and system behavior\n"
                     "- 70–89: Strong fit — good choice with minor tradeoffs\n"
                     "- 40–69: Acceptable — works, but not ideal\n"
-                    "- 20–39: Weak fit — significant mismatch\n"
-                    "- 0–19: Poor fit — should not be used\n\n"
-                    "2. Relevance\n"
-                    "- If fit_score < 20 → relevant = false\n"
-                    "- Otherwise → relevant = true\n\n"
-                    "3. No generic statements\n"
+                    "- 0–39: Poor fit — significant mismatch or unnecessary complexity\n\n"
+                    "2. No generic statements\n"
                     "BAD: \"React is popular\"\n"
                     "GOOD: \"React helps manage dynamic UI state for this multi-step workflow interface\"\n\n"
-                    "4. Tie reasoning to:\n"
+                    "3. Tie reasoning to:\n"
                     "- user scale\n"
                     "- data types\n"
                     "- execution model\n"
                     "- app shape\n"
                     "- recommended stack context\n\n"
-                    "5. Be honest\n"
+                    "4. Be honest\n"
                     "- Do not inflate scores\n"
                     "- If something is a bad fit, score it low\n\n"
+                    "5. Specificity requirements\n"
+                    "- Reference at least one explicit constraint (e.g. execution=async)\n"
+                    "- Reference at least one concrete system behavior (e.g. background jobs, file upload, multi-step UI)\n\n"
+                    "6. Drawback rule\n"
+                    "- If fit_score >= 90, still include at least one realistic limitation in drawbacks\n\n"
+                    "7. why_not_recommended rule\n"
+                    "- If fit_score < 70, why_not_recommended must be non-null\n"
+                    "- If fit_score >= 70, why_not_recommended must be null\n\n"
                     "---\n\n"
                     "IMPORTANT\n\n"
-                    "- \"relevant\" must match the fit_score rule (< 20 → false, otherwise → true)\n"
                     "- benefits/drawbacks must be specific to THIS system\n"
                     "- do not restate the option — explain its effect on the system\n"
                     "- Output ONLY valid JSON. No markdown. No extra text."
@@ -107,11 +112,62 @@ def _evaluate_option(
 
     try:
         result = json.loads(response.choices[0].message.content)
-        result.setdefault("fit_score", 50)
-        result["relevant"] = result["fit_score"] >= 20
+        result = _enforce_option_rules(result, constraints_block, field, value)
         return result
     except json.JSONDecodeError as e:
         raise ValueError(f"option_advisor received invalid JSON for {field}/{value}: {e}")
+
+
+def _enforce_option_rules(result: dict, constraints_block: str, field: str, value: str) -> dict:
+    fit_score = result.get("fit_score", 50)
+    try:
+        fit_score = int(fit_score)
+    except (TypeError, ValueError):
+        fit_score = 50
+    fit_score = max(0, min(100, fit_score))
+
+    confidence = result.get("confidence", 60)
+    try:
+        confidence = int(confidence)
+    except (TypeError, ValueError):
+        confidence = 60
+    confidence = max(0, min(100, confidence))
+
+    complexity_cost = result.get("complexity_cost", "medium")
+    if complexity_cost not in {"low", "medium", "high"}:
+        complexity_cost = "medium"
+
+    benefits = result.get("benefits") or []
+    drawbacks = result.get("drawbacks") or []
+
+    why_not = result.get("why_not_recommended")
+    if fit_score < 70:
+        if not why_not:
+            constraint_hint = ""
+            if constraints_block:
+                lines = [line.strip("- ").strip() for line in constraints_block.splitlines() if line.startswith("- ")]
+                if lines:
+                    constraint_hint = f" Constraint mismatch: {lines[0]}."
+            why_not = (
+                f"This option adds friction against the project's constraints or execution model.{constraint_hint}"
+            )
+    else:
+        why_not = None
+
+    if fit_score >= 90 and not drawbacks:
+        drawbacks = [
+            "Still adds implementation and operational overhead compared to simpler alternatives for this project."
+        ]
+
+    return {
+        "fit_score": fit_score,
+        "confidence": confidence,
+        "complexity_cost": complexity_cost,
+        "reason": result.get("reason", "Insufficient detail provided to justify the fit for this project."),
+        "benefits": benefits,
+        "drawbacks": drawbacks,
+        "why_not_recommended": why_not,
+    }
 
 
 def _inject_option_urls(architecture: dict) -> dict:
