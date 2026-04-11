@@ -46,6 +46,7 @@ def test_recommend_contract():
     assert rec["backend"] in {"fastapi", "node", "none"}
     assert rec["frontend"] in {"react", "static", "none"}
     assert rec["database"] in {"postgres", "firebase", "none"}
+    assert "api_candidates" in data
 
     assert "score" in data["confidence"]
     assert "reason" in data["confidence"]

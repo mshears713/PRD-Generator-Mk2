@@ -1,12 +1,12 @@
-import { Button, Input } from '@heroui/react'
+import React from 'react'
+import { Button, Chip, Input } from '@heroui/react'
 import DecisionCard from './DecisionCard'
-import { STACK_DETAILS, API_DETAILS } from '../data/options'
+import { STACK_DETAILS } from '../data/options'
 
 const OPTIONS = {
   scope: ['frontend', 'backend', 'fullstack'],
   backend: ['fastapi', 'node', 'none'],
   frontend: ['react', 'static', 'none'],
-  apis: ['openrouter', 'tavily'],
   database: ['postgres', 'firebase', 'none'],
 }
 
@@ -82,7 +82,25 @@ function StackGroup({ field, selections, onSelect, architectureData }) {
   )
 }
 
-export default function SelectionCards({ selections, onChange, architectureData }) {
+function normalizeApiCandidates(apiCandidates) {
+  if (!apiCandidates) return { selectable: [], rejected: [], meta: {} }
+  const meta = {}
+  const selectable = []
+  const rejected = []
+  ;['selected', 'candidates'].forEach(statusKey => {
+    (apiCandidates[statusKey] || []).forEach(item => {
+      meta[item.id] = item
+      selectable.push(item)
+    })
+  })
+  ;(apiCandidates.rejected || []).forEach(item => {
+    meta[item.id] = item
+    rejected.push(item)
+  })
+  return { selectable, rejected, meta }
+}
+
+export default function SelectionCards({ selections, onChange, architectureData, apiCandidates }) {
   function selectSingle(field, value) {
     onChange({ ...selections, [field]: value })
   }
@@ -102,6 +120,7 @@ export default function SelectionCards({ selections, onChange, architectureData 
   }
 
   const selectedApis = selections.apis || []
+  const { selectable: availableApis, rejected: rejectedApis, meta: apiMeta } = normalizeApiCandidates(apiCandidates)
 
   return (
     <div className="flex flex-col gap-6">
@@ -122,56 +141,75 @@ export default function SelectionCards({ selections, onChange, architectureData 
           {LABELS.apis}
         </label>
         <div className="flex flex-wrap gap-2">
-          {OPTIONS.apis.map(api => {
-            const meta = API_DETAILS[api]
-            const isSelected = selectedApis.includes(api)
+          {availableApis.map(item => {
+            const isSelected = selectedApis.includes(item.id)
+            const variant = isSelected ? 'secondary' : item.status === 'selected' ? 'flat' : 'outline'
             return (
               <Button
-                key={api}
-                variant={isSelected ? 'secondary' : 'outline'}
+                key={item.id}
+                variant={variant}
                 size="sm"
-                onPress={() => toggleApi(api)}
-                className={meta?.sponsored ? 'border-warning/55' : ''}
+                onPress={() => toggleApi(item.id)}
+                className={item.sponsored ? 'border-warning/55' : ''}
               >
-                {meta?.name || api}
-                {meta?.sponsored && <span className="ml-1.5 text-warning text-[10px]">✦</span>}
+                {item.name || item.id}
+                {item.recommended && <span className="ml-1.5 text-accent text-[10px]">★</span>}
+                {item.sponsored && <span className="ml-1.5 text-warning text-[10px]">✦</span>}
               </Button>
             )
           })}
+          {availableApis.length === 0 && (
+            <span className="text-sm text-muted">No API tools needed for this idea.</span>
+          )}
         </div>
 
+        {rejectedApis.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-1">
+            {rejectedApis.map(item => (
+              <Chip key={item.id} size="sm" variant="flat" color="default">
+                {item.name || item.id}: {item.why_not || 'Not needed'}
+              </Chip>
+            ))}
+          </div>
+        )}
+
         {selectedApis.map(api => {
-          const meta = API_DETAILS[api]
+          const meta = apiMeta[api]
           if (!meta) return null
           return (
             <DecisionCard
               key={api}
-              title={meta.name}
-              subtitle={meta.subtitle}
-              learnMoreUrl={meta.learnMoreUrl}
-              benefits={meta.benefits}
-              drawbacks={meta.drawbacks}
+              title={meta.name || api}
+              subtitle={meta.summary || meta.category}
+              learnMoreUrl={null}
+              reason={meta.reason}
+              benefits={meta.best_for || []}
+              drawbacks={meta.avoid_when || []}
               sponsored={meta.sponsored}
-              sponsorOffer={meta.sponsorOffer}
+              sponsorOffer={meta.sponsor_note}
+              isRecommended={meta.recommended}
             />
           )
         })}
 
-        {selectedApis.map(api => (
-          <div key={`key-${api}`} className="flex flex-col gap-1">
-            <label className="text-xs text-muted capitalize">
-              {API_DETAILS[api]?.name || api} API key
-            </label>
-            <Input
-              type="text"
-              placeholder={`Enter your ${API_DETAILS[api]?.name || api} key...`}
-              value={selections.api_keys?.[api] || ''}
-              onChange={e => setApiKey(api, e.target.value)}
-              aria-label={`${API_DETAILS[api]?.name || api} API key`}
-              className="max-w-sm font-mono"
-            />
-          </div>
-        ))}
+        {selectedApis.map(api => {
+          const meta = apiMeta[api] || {}
+          return (
+            <div key={`key-${api}`} className="flex flex-col gap-1">
+              <label className="text-xs text-muted capitalize">
+                {meta.name || api} API key
+              </label>
+              <Input
+                type="text"
+                placeholder={`Enter your ${meta.name || api} key...`}
+                value={selections.api_keys?.[api] || ''}
+                onChange={e => setApiKey(api, e.target.value)}
+                aria-label={`${meta.name || api} API key`}
+                className="max-w-sm font-mono"
+              />
+            </div>
+          )
+        })}
       </div>
 
       {/* Database */}

@@ -1,7 +1,29 @@
 def build_env(apis: list[str], api_keys: dict[str, str], database: str) -> str:
     API_KEY_MAP = {
-        "openrouter": ("OPENROUTER_API_KEY", "OpenRouter API key for LLM routing"),
-        "tavily": ("TAVILY_API_KEY", "Tavily search API key"),
+        "openrouter": [("OPENROUTER_API_KEY", "OpenRouter API key for LLM routing")],
+        "anthropic": [("ANTHROPIC_API_KEY", "Anthropic API key")],
+        "replicate": [("REPLICATE_API_TOKEN", "Replicate API token")],
+        "tavily": [("TAVILY_API_KEY", "Tavily search API key")],
+        "serpapi": [("SERPAPI_API_KEY", "SerpAPI key for Google SERP data")],
+        "brave_search": [("BRAVE_API_KEY", "Brave Search API key")],
+        "mapbox": [("MAPBOX_ACCESS_TOKEN", "Mapbox access token")],
+        "google_maps_platform": [("GOOGLE_MAPS_API_KEY", "Google Maps Platform API key")],
+        "upstash_redis": [
+            ("UPSTASH_REDIS_REST_URL", "", "Upstash Redis REST URL [REQUIRED]"),
+            ("UPSTASH_REDIS_REST_TOKEN", "", "Upstash Redis REST token [REQUIRED]"),
+        ],
+        "supabase": [
+            ("SUPABASE_URL", "", "Supabase project URL [REQUIRED]"),
+            ("SUPABASE_ANON_KEY", "", "Supabase anon/public key [REQUIRED]"),
+        ],
+        "browserbase": [("BROWSERBASE_API_KEY", "", "Browserbase API key")],
+        "notion_api": [("NOTION_API_KEY", "", "Notion integration token")],
+        "slack_api": [("SLACK_BOT_TOKEN", "", "Slack bot token")],
+        "google_docs_drive": [
+            ("GOOGLE_CLIENT_ID", "", "Google OAuth client id"),
+            ("GOOGLE_CLIENT_SECRET", "", "Google OAuth client secret"),
+        ],
+        "blaxel": [("BLAXEL_API_KEY", "", "Blaxel API key for testing support")],
     }
 
     DB_MAP = {
@@ -12,6 +34,14 @@ def build_env(apis: list[str], api_keys: dict[str, str], database: str) -> str:
             ("FIREBASE_PROJECT_ID", "", "Firebase project ID [REQUIRED]"),
             ("FIREBASE_API_KEY", "", "Firebase web API key [REQUIRED]"),
             ("FIREBASE_AUTH_DOMAIN", "", "Firebase auth domain [OPTIONAL]"),
+        ],
+        "supabase": [
+            ("SUPABASE_URL", "", "Supabase project URL [REQUIRED]"),
+            ("SUPABASE_ANON_KEY", "", "Supabase anon/public key [REQUIRED]"),
+        ],
+        "upstash_redis": [
+            ("UPSTASH_REDIS_REST_URL", "", "Upstash Redis REST URL [REQUIRED]"),
+            ("UPSTASH_REDIS_REST_TOKEN", "", "Upstash Redis REST token [REQUIRED]"),
         ],
     }
 
@@ -28,10 +58,16 @@ def build_env(apis: list[str], api_keys: dict[str, str], database: str) -> str:
         lines.append("# External APIs")
         for api in apis:
             if api in API_KEY_MAP:
-                key_name, comment = API_KEY_MAP[api]
-                value = api_keys.get(api, f"your-{api}-key-here")
-                lines.append(f"# {comment} [REQUIRED]")
-                lines.append(f"{key_name}={value}")
+                for mapping in API_KEY_MAP[api]:
+                    if len(mapping) == 3:
+                        key_name, default_val, comment = mapping
+                    else:
+                        key_name, comment = mapping
+                        default_val = ""
+                    value = api_keys.get(api, default_val or f"your-{api}-key-here")
+                    if comment:
+                        lines.append(f"# {comment} [REQUIRED]")
+                    lines.append(f"{key_name}={value or ''}")
                 lines.append("")
 
     if database in DB_MAP:

@@ -1,6 +1,7 @@
 import json
 
 from llm import call_llm
+from pipeline.api_candidate_selector import select_api_candidates
 
 
 def _format_constraints(constraints: dict) -> str:
@@ -57,6 +58,10 @@ def _format_constraints(constraints: dict) -> str:
     elif app_shape == "workflow":
         lines.append("- Multi-step workflow: include orchestration, pipeline stages, or agent logic")
 
+    testing = constraints.get("testing")
+    if testing is True:
+        lines.append("- Testing support requested — include platform-assisted testing when relevant")
+
     return "\n".join(lines)
 
 
@@ -79,6 +84,7 @@ def _build_decision_scaffold(idea: str, constraints: dict) -> dict:
     persistence = data.get("persistence")
     execution = constraints.get("execution")
     app_shape = constraints.get("app_shape")
+    testing = constraints.get("testing") is True
 
     has_persistent_data = persistence == "permanent"
     has_any_data = (types and types != ["none"]) or has_persistent_data
@@ -309,6 +315,13 @@ def _build_decision_scaffold(idea: str, constraints: dict) -> dict:
                     "impact": "multi-step orchestration requires backend coordination between stages",
                 }
             )
+    if testing:
+        constraint_impact.append(
+            {
+                "constraint": "testing=true",
+                "impact": "include platform-assisted testing/tooling when assembling the stack and APIs",
+            }
+        )
 
     assumptions = []
     if not user_scale:
@@ -345,6 +358,7 @@ def _build_decision_scaffold(idea: str, constraints: dict) -> dict:
             "llm_core": llm_core,
             "needs_search": needs_search,
             "oauth_required": oauth_required,
+            "testing_required": testing,
         },
         "constraint_impact": constraint_impact,
         "assumptions": assumptions,
@@ -381,10 +395,15 @@ def _enforce_stack_consistency(recommended: dict, scaffold: dict) -> dict:
         frontend = _pick(frontend, ["react", "static"], preferred.get("frontend"))
 
     apis = rec.get("apis") or []
-    apis = [api for api in apis if api in {"openrouter", "tavily"}]
+    if not isinstance(apis, list):
+        apis = []
+    # Ensure required APIs are present
     for api in required_apis:
         if api not in apis:
             apis.append(api)
+    # Deduplicate while preserving order
+    seen = set()
+    apis = [a for a in apis if not (a in seen or seen.add(a))]
 
     return {
         "scope": scope,
@@ -533,8 +552,7 @@ def get_recommendation(idea: str, constraints: dict = None) -> dict:
                     "- scope: frontend | backend | fullstack\n"
                     "- backend: fastapi | node | none\n"
                     "- frontend: react | static | none\n"
-                    "- apis: include 'openrouter' ONLY if LLM is core to the system\n"
-                    "- apis: include 'tavily' ONLY if web search is required\n"
+                    "- apis: choose only APIs/tools that directly support a core requirement; prefer the curated registry options provided in the scaffold context.\n"
                     "- database: postgres | firebase | none\n\n"
                     "---\n\n"
                     "IMPORTANT\n\n"
@@ -573,6 +591,32 @@ def get_recommendation(idea: str, constraints: dict = None) -> dict:
                 score = 0
             reason = confidence.get("reason") or _compute_confidence(scaffold)["reason"]
             result["confidence"] = {"score": score, "reason": reason}
+        # API candidate selection (registry-driven, deterministic)
+        api_candidates = select_api_candidates(idea, constraints or {})
+        result["api_candidates"] = api_candidates
+        selected_api_ids = [item["id"] for item in api_candidates.get("selected", [])]
+        if "recommended" not in result:
+            result["recommended"] = {}
+        result["recommended"]["apis"] = selected_api_ids
+
+        # Build concise API rationale from selector
+        selected_names = [item.get("name", item["id"]) for item in api_candidates.get("selected", [])]
+        rejected_names = [item.get("name", item["id"]) for item in api_candidates.get("rejected", []) if item.get("status") == "rejected"]
+        constraint_hint = constraints or {}
+        hint_parts = []
+        if constraint_hint.get("user_scale"):
+            hint_parts.append(f"user_scale={constraint_hint['user_scale']}")
+        execution = constraint_hint.get("execution")
+        if execution:
+            hint_parts.append(f"execution={execution}")
+        rationale_text = "APIs chosen for " + (", ".join(hint_parts) or "project signals")
+        rationale_text += ". Selected: " + (", ".join(selected_names) or "none")
+        if rejected_names:
+            rationale_text += f". Not chosen: {', '.join(rejected_names[:3])}."
+        if "rationale" not in result:
+            result["rationale"] = {}
+        result["rationale"]["apis"] = rationale_text
+
         return result
     except (json.JSONDecodeError, ValueError) as e:
         raise ValueError(f"Recommender received invalid JSON from LLM: {e}")

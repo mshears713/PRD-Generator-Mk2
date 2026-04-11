@@ -1,3 +1,4 @@
+import React from 'react'
 import { useState } from 'react'
 import { Button, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 
@@ -7,6 +8,7 @@ const DEFAULT_CONSTRAINTS = {
   data: { types: [], persistence: 'temporary' },
   execution: 'short',
   app_shape: 'simple',
+  testing: false,
 }
 
 export default function QuickSetupPanel({ onContinue }) {
@@ -104,7 +106,7 @@ export default function QuickSetupPanel({ onContinue }) {
         </div>
 
         {/* 5. App Shape */}
-        <div className="bg-surface border border-border rounded-b-lg p-4">
+        <div className="bg-surface border border-border border-b-0 p-4">
           <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">What shape is this app?</p>
           <ToggleButtonGroup
             selectionMode="single"
@@ -115,6 +117,20 @@ export default function QuickSetupPanel({ onContinue }) {
             <ToggleButton id="simple">Simple tool</ToggleButton>
             <ToggleButton id="ai_core"><ToggleButtonGroup.Separator />AI-powered tool</ToggleButton>
             <ToggleButton id="workflow"><ToggleButtonGroup.Separator />Multi-step workflow</ToggleButton>
+          </ToggleButtonGroup>
+        </div>
+
+        {/* 6. Testing support */}
+        <div className="bg-surface border border-border rounded-b-lg p-4">
+          <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">Include testing support?</p>
+          <ToggleButtonGroup
+            selectionMode="single"
+            selectedKeys={new Set([c.testing ? 'yes' : 'no'])}
+            onSelectionChange={keys => { const v = [...keys][0]; if (v === 'yes') set('testing', true); if (v === 'no') set('testing', false) }}
+            size="sm"
+          >
+            <ToggleButton id="no">Not now</ToggleButton>
+            <ToggleButton id="yes"><ToggleButtonGroup.Separator />Yes, include testing</ToggleButton>
           </ToggleButtonGroup>
         </div>
 

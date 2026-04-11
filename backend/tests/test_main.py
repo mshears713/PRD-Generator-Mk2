@@ -19,6 +19,7 @@ def test_recommend_returns_200():
     assert "recommended" in data
     assert "architecture" in data
     assert "deployment" in data
+    assert "api_candidates" in data
     assert "confidence" in data
     assert "score" in data["confidence"]
     assert "reason" in data["confidence"]
