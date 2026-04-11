@@ -1,18 +1,10 @@
 import json
-import os
-from openai import OpenAI
+
+from llm import call_llm
 
 
 def generate_prd(normalized: dict, architecture: dict) -> str:
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        temperature=0.3,
-        messages=[
-            {
-                "role": "system",
-                "content": (
+    system_prompt = (
                     "You are a senior technical writer producing agent-ready PRDs. "
                     "Given a system definition and architecture analysis, write a structured PRD in markdown.\n\n"
                     "The PRD must have exactly these sections in this order:\n\n"
@@ -42,16 +34,18 @@ def generate_prd(normalized: dict, architecture: dict) -> str:
                     "- Each component must contain enough detail for a developer to begin implementation\n"
                     "- Avoid vague descriptions — include specific behaviors, inputs, and outputs\n\n"
                     "Output ONLY the markdown. No preamble, no closing remarks."
-                ),
-            },
-            {
-                "role": "user",
-                "content": (
-                    f"System definition:\n{json.dumps(normalized, indent=2)}\n\n"
-                    f"Architecture:\n{json.dumps(architecture, indent=2)}"
-                ),
-            },
-        ],
     )
 
-    return response.choices[0].message.content
+    result = call_llm(
+        f"System definition:\n{json.dumps(normalized, indent=2)}\n\n"
+        f"Architecture:\n{json.dumps(architecture, indent=2)}",
+        {
+            "agent_name": "prd_gen",
+            "model": "gpt-4o",
+            "temperature": 0.3,
+            "system_prompt": system_prompt,
+            "expect_json": False,
+            "input_data": {"normalized": normalized, "architecture": architecture},
+        },
+    )
+    return result.get("text", "")

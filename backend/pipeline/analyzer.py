@@ -1,19 +1,10 @@
 import json
-import os
-from openai import OpenAI
+
+from llm import call_llm
 
 
 def analyze(normalized: dict) -> dict:
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        temperature=0.3,
-        response_format={"type": "json_object"},
-        messages=[
-            {
-                "role": "system",
-                "content": (
+    system_prompt = (
                     "You are a software architect. Given a normalized system definition, produce a concrete architecture analysis.\n\n"
                     "Output this exact JSON structure:\n"
                     "{\n"
@@ -40,13 +31,20 @@ def analyze(normalized: dict) -> dict:
                     "- Components must map directly to real parts of the system (API layer, frontend UI, database, background worker, file store, etc.)\n"
                     "- Avoid generic components like \"Backend\" — be specific (e.g. \"FastAPI Service\")\n\n"
                     "- Output ONLY valid JSON. No markdown fences."
-                ),
-            },
-            {"role": "user", "content": f"System definition:\n{json.dumps(normalized, indent=2)}"},
-        ],
     )
 
     try:
-        return json.loads(response.choices[0].message.content)
-    except (json.JSONDecodeError, ValueError) as e:
+        return call_llm(
+            f"System definition:\n{json.dumps(normalized, indent=2)}",
+            {
+                "agent_name": "analyzer",
+                "model": "gpt-4o",
+                "temperature": 0.3,
+                "response_format": {"type": "json_object"},
+                "system_prompt": system_prompt,
+                "expect_json": True,
+                "input_data": {"normalized": normalized},
+            },
+        )
+    except (json.JSONDecodeError, ValueError, TypeError) as e:
         raise ValueError(f"Analyzer received invalid JSON from LLM: {e}")

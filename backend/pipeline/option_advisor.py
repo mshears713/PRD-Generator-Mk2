@@ -1,9 +1,8 @@
 import json
-import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from openai import OpenAI
 
 from pipeline.recommender import _format_constraints
+from llm import call_llm
 
 # All selectable options per field
 ALL_OPTIONS = {
@@ -31,12 +30,13 @@ _OPTION_URLS = {
 
 
 def _evaluate_option(
-    client: OpenAI,
     idea: str,
+    constraints: dict,
     constraints_block: str,
     stack_context: str,
     field: str,
     value: str,
+    recommended: dict,
 ) -> dict:
     """Single gpt-4o-mini call: evaluate one option for one field."""
     name = _OPTION_NAMES.get(field, {}).get(value, value)
@@ -61,14 +61,7 @@ def _evaluate_option(
         "}\n"
     )
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        temperature=0.3,
-        response_format={"type": "json_object"},
-        messages=[
-            {
-                "role": "system",
-                "content": (
+    system_prompt = (
                     "You are a software architect evaluating technology choices for a specific project.\n\n"
                     "Your job is to determine how well a given option fits THIS specific system.\n\n"
                     "Be concise, decisive, and project-specific.\n\n"
@@ -104,17 +97,30 @@ def _evaluate_option(
                     "- benefits/drawbacks must be specific to THIS system\n"
                     "- do not restate the option — explain its effect on the system\n"
                     "- Output ONLY valid JSON. No markdown. No extra text."
-                ),
-            },
-            {"role": "user", "content": user_content},
-        ],
     )
 
     try:
-        result = json.loads(response.choices[0].message.content)
+        result = call_llm(
+            user_content,
+            {
+                "agent_name": "option_advisor",
+                "model": "gpt-4o-mini",
+                "temperature": 0.3,
+                "response_format": {"type": "json_object"},
+                "system_prompt": system_prompt,
+                "expect_json": True,
+                "input_data": {
+                    "idea": idea,
+                    "constraints": constraints,
+                    "field": field,
+                    "value": value,
+                    "recommended": recommended,
+                },
+            },
+        )
         result = _enforce_option_rules(result, constraints_block, field, value)
         return result
-    except json.JSONDecodeError as e:
+    except (json.JSONDecodeError, ValueError) as e:
         raise ValueError(f"option_advisor received invalid JSON for {field}/{value}: {e}")
 
 
@@ -191,7 +197,6 @@ def get_all_option_advice(idea: str, constraints: dict, recommended: dict) -> di
             "database": {"recommended": "postgres",  "options": {...}},
         }
     """
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
     constraints_block = _format_constraints(constraints or {})
     stack_context = (
         f"Scope: {recommended.get('scope', 'unknown')}, "
@@ -213,7 +218,7 @@ def get_all_option_advice(idea: str, constraints: dict, recommended: dict) -> di
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = {
             executor.submit(
-                _evaluate_option, client, idea, constraints_block, stack_context, field, value
+                _evaluate_option, idea, constraints or {}, constraints_block, stack_context, field, value, recommended
             ): (field, value)
             for field, value in tasks
         }

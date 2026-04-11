@@ -1,25 +1,16 @@
 import json
-import os
-from openai import OpenAI
+
+from llm import call_llm
 
 
 def normalize(idea: str, selections: dict) -> dict:
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-
     apis_str = ", ".join(selections["apis"]) if selections["apis"] else "none"
     stack_desc = (
         f"Scope: {selections['scope']}, Backend: {selections['backend']}, "
         f"Frontend: {selections['frontend']}, APIs: {apis_str}, Database: {selections['database']}"
     )
 
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        temperature=0.3,
-        response_format={"type": "json_object"},
-        messages=[
-            {
-                "role": "system",
-                "content": (
+    system_prompt = (
                     "You are a software requirements analyst. Remove vagueness from a product idea "
                     "and produce a clear, unambiguous system definition.\n\n"
                     "Output this exact JSON structure:\n"
@@ -41,13 +32,20 @@ def normalize(idea: str, selections: dict) -> dict:
                     "- If the idea is ambiguous, make a reasonable assumption and state it clearly\n"
                     "- Avoid phrases like \"manage\", \"handle\", \"support\" without specifying how\n\n"
                     "- Output ONLY valid JSON. No markdown fences."
-                ),
-            },
-            {"role": "user", "content": f"Idea: {idea}\nStack: {stack_desc}"},
-        ],
     )
 
     try:
-        return json.loads(response.choices[0].message.content)
-    except (json.JSONDecodeError, ValueError) as e:
+        return call_llm(
+            f"Idea: {idea}\nStack: {stack_desc}",
+            {
+                "agent_name": "normalizer",
+                "model": "gpt-4o",
+                "temperature": 0.3,
+                "response_format": {"type": "json_object"},
+                "system_prompt": system_prompt,
+                "expect_json": True,
+                "input_data": {"idea": idea, "selections": selections},
+            },
+        )
+    except (json.JSONDecodeError, ValueError, TypeError) as e:
         raise ValueError(f"Normalizer received invalid JSON from LLM: {e}")
