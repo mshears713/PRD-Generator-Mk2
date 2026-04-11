@@ -1,5 +1,6 @@
 # Python virtual environment
 backend/venv/
+.venv/
 
 # Environment secrets
 backend/.env
