@@ -1,4 +1,4 @@
-import { Button, Chip } from '@heroui/react'
+import { Button } from '@heroui/react'
 import DecisionCard from './DecisionCard'
 import { DEPLOYMENT_OPTIONS } from '../data/options'
 
@@ -35,9 +35,7 @@ export default function DeploymentRow({ value, onChange, deploymentOptions }) {
             className={opt.sponsored ? 'border-warning/55' : ''}
           >
             {opt.name}
-            {opt.sponsored && (
-              <Chip size="sm" color="warning" className="ml-1 text-[10px]">✦</Chip>
-            )}
+            {opt.sponsored && <span className="ml-1.5 text-warning text-[10px]">✦</span>}
           </Button>
         ))}
       </div>

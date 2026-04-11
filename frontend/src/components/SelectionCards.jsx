@@ -1,4 +1,4 @@
-import { Button, Chip, Input } from '@heroui/react'
+import { Button, Input } from '@heroui/react'
 import DecisionCard from './DecisionCard'
 import { STACK_DETAILS, API_DETAILS } from '../data/options'
 
@@ -62,9 +62,7 @@ function StackGroup({ field, selections, onSelect, architectureData }) {
               className="capitalize"
             >
               {staticMeta?.name || opt}
-              {isRec && (
-                <Chip size="sm" color="accent" className="ml-1 text-[10px]">★</Chip>
-              )}
+              {isRec && <span className="ml-1.5 text-accent text-[10px]">★</span>}
             </Button>
           )
         })}
@@ -136,9 +134,7 @@ export default function SelectionCards({ selections, onChange, architectureData 
                 className={meta?.sponsored ? 'border-warning/55' : ''}
               >
                 {meta?.name || api}
-                {meta?.sponsored && (
-                  <Chip size="sm" color="warning" className="ml-1 text-[10px]">✦</Chip>
-                )}
+                {meta?.sponsored && <span className="ml-1.5 text-warning text-[10px]">✦</span>}
               </Button>
             )
           })}

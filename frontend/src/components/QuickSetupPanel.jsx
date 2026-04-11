@@ -20,17 +20,6 @@ export default function QuickSetupPanel({ onContinue }) {
     setC(prev => ({ ...prev, data: { ...prev.data, [key]: value } }))
   }
 
-  function handleSingle(setter) {
-    return (keys) => {
-      const val = [...keys][0]
-      if (val) setter(val)
-    }
-  }
-
-  function handleMulti(setter) {
-    return (keys) => setter([...keys])
-  }
-
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
@@ -46,7 +35,7 @@ export default function QuickSetupPanel({ onContinue }) {
           <ToggleButtonGroup
             selectionMode="single"
             selectedKeys={new Set([c.user_scale])}
-            onSelectionChange={handleSingle(v => set('user_scale', v))}
+            onSelectionChange={keys => { const v = [...keys][0]; if (v) set('user_scale', v) }}
             size="sm"
           >
             <ToggleButton id="single">Just me</ToggleButton>
@@ -61,7 +50,7 @@ export default function QuickSetupPanel({ onContinue }) {
           <ToggleButtonGroup
             selectionMode="single"
             selectedKeys={new Set([c.auth])}
-            onSelectionChange={handleSingle(v => set('auth', v))}
+            onSelectionChange={keys => { const v = [...keys][0]; if (v) set('auth', v) }}
             size="sm"
           >
             <ToggleButton id="none">No accounts</ToggleButton>
@@ -76,7 +65,7 @@ export default function QuickSetupPanel({ onContinue }) {
           <ToggleButtonGroup
             selectionMode="multiple"
             selectedKeys={new Set(c.data.types)}
-            onSelectionChange={handleMulti(v => setData('types', v))}
+            onSelectionChange={keys => setData('types', [...keys])}
             size="sm"
             className="flex-wrap"
           >
@@ -90,7 +79,7 @@ export default function QuickSetupPanel({ onContinue }) {
             <ToggleButtonGroup
               selectionMode="single"
               selectedKeys={new Set([c.data.persistence])}
-              onSelectionChange={handleSingle(v => setData('persistence', v))}
+              onSelectionChange={keys => { const v = [...keys][0]; if (v) setData('persistence', v) }}
               size="sm"
             >
               <ToggleButton id="temporary">Temporary</ToggleButton>
@@ -105,7 +94,7 @@ export default function QuickSetupPanel({ onContinue }) {
           <ToggleButtonGroup
             selectionMode="single"
             selectedKeys={new Set([c.execution])}
-            onSelectionChange={handleSingle(v => set('execution', v))}
+            onSelectionChange={keys => { const v = [...keys][0]; if (v) set('execution', v) }}
             size="sm"
           >
             <ToggleButton id="realtime">Instant</ToggleButton>
@@ -120,7 +109,7 @@ export default function QuickSetupPanel({ onContinue }) {
           <ToggleButtonGroup
             selectionMode="single"
             selectedKeys={new Set([c.app_shape])}
-            onSelectionChange={handleSingle(v => set('app_shape', v))}
+            onSelectionChange={keys => { const v = [...keys][0]; if (v) set('app_shape', v) }}
             size="sm"
           >
             <ToggleButton id="simple">Simple tool</ToggleButton>
