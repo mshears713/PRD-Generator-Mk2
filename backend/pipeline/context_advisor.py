@@ -1,7 +1,7 @@
 import json
-import os
-from openai import OpenAI
+
 from pipeline.recommender import _format_constraints
+from llm import call_llm
 
 # Static documentation URLs — injected after the LLM call to avoid hallucination.
 # The LLM is never asked to produce URLs; we map them deterministically here.
@@ -50,8 +50,6 @@ def get_context_advice(idea: str, constraints: dict, recommended: dict) -> dict:
             "deployment":   [ { Render }, { AWS }, { Self-hosted } ]
         }
     """
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-
     constraints_block = _format_constraints(constraints or {})
     stack_summary = (
         f"Scope: {recommended.get('scope', 'unknown')}, "
@@ -134,18 +132,19 @@ def get_context_advice(idea: str, constraints: dict, recommended: dict) -> dict:
         "Output ONLY valid JSON. No markdown fences. No extra text."
     )
 
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        temperature=0.3,
-        response_format={"type": "json_object"},
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_content},
-        ],
-    )
-
     try:
-        result = json.loads(response.choices[0].message.content)
+        result = call_llm(
+            user_content,
+            {
+                "agent_name": "context_advisor",
+                "model": "gpt-4o",
+                "temperature": 0.3,
+                "response_format": {"type": "json_object"},
+                "system_prompt": system_prompt,
+                "expect_json": True,
+                "input_data": {"idea": idea, "constraints": constraints or {}, "recommended": recommended},
+            },
+        )
         return _inject_urls(result)
-    except (json.JSONDecodeError, ValueError) as e:
+    except (json.JSONDecodeError, ValueError, TypeError) as e:
         raise ValueError(f"Context advisor received invalid JSON from LLM: {e}")

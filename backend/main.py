@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
+from config import USE_FAKE_LLM
 from pipeline.recommender import get_recommendation
 from pipeline.context_advisor import get_context_advice
 from pipeline.option_advisor import get_all_option_advice
@@ -119,7 +120,7 @@ class RecommendResponse(BaseModel):
 
 @app.post("/recommend", response_model=RecommendResponse)
 def recommend(req: RecommendRequest):
-    if not os.getenv("OPENAI_API_KEY"):
+    if not USE_FAKE_LLM and not os.getenv("OPENAI_API_KEY"):
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
     try:
         result = get_recommendation(req.idea, req.constraints)
@@ -134,7 +135,7 @@ def recommend(req: RecommendRequest):
 
 @app.post("/generate")
 def generate(req: GenerateRequest):
-    if not os.getenv("OPENAI_API_KEY"):
+    if not USE_FAKE_LLM and not os.getenv("OPENAI_API_KEY"):
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
 
     selections = {

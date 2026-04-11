@@ -1,6 +1,6 @@
 import json
-import os
-from openai import OpenAI
+
+from llm import call_llm
 
 
 def _format_constraints(constraints: dict) -> str:
@@ -417,8 +417,6 @@ def _compute_confidence(scaffold: dict) -> dict:
 
 
 def get_recommendation(idea: str, constraints: dict = None) -> dict:
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-
     constraints_block = _format_constraints(constraints or {})
     scaffold = _build_decision_scaffold(idea, constraints or {})
     user_content = f"Idea: {idea}"
@@ -439,14 +437,7 @@ def get_recommendation(idea: str, constraints: dict = None) -> dict:
     )
     user_content = f"{scaffold_block}\n\n{user_content}"
 
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        temperature=0.3,
-        response_format={"type": "json_object"},
-        messages=[
-            {
-                "role": "system",
-                "content": (
+    system_prompt = (
                     "You are a senior software architect helping a builder quickly arrive at a clear, practical system design.\n\n"
                     "This is not a brainstorming task. You must make decisions.\n\n"
                     "---\n\n"
@@ -552,14 +543,21 @@ def get_recommendation(idea: str, constraints: dict = None) -> dict:
                     "- Use the decision scaffold to limit choices; do not invent options outside it\n"
                     "- The system must be internally consistent\n"
                     "- Output ONLY valid JSON. No markdown. No extra text."
-                ),
-            },
-            {"role": "user", "content": user_content},
-        ],
     )
 
     try:
-        result = json.loads(response.choices[0].message.content)
+        result = call_llm(
+            user_content,
+            {
+                "agent_name": "recommender",
+                "model": "gpt-4o",
+                "temperature": 0.3,
+                "response_format": {"type": "json_object"},
+                "system_prompt": system_prompt,
+                "expect_json": True,
+                "input_data": {"idea": idea, "constraints": constraints or {}, "scaffold": scaffold},
+            },
+        )
         result["recommended"] = _enforce_stack_consistency(result.get("recommended", {}), scaffold)
         result["constraint_impact"] = scaffold.get("constraint_impact", [])
         if not result.get("assumptions"):
