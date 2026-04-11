@@ -40,14 +40,14 @@ export default function App() {
     setStage('quicksetup')
   }
 
-  async function handleQuickSetupContinue(constraints) {
+  async function handleQuickSetupContinue(answers) {
     setStage('recommending')
     setError('')
     try {
       const res = await fetch('/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idea, constraints }),
+        body: JSON.stringify({ idea, answers }),
       })
       if (!res.ok) throw new Error((await res.json()).detail || 'Request failed')
       const data = await res.json()
@@ -134,7 +134,7 @@ export default function App() {
         <IdeaInput idea={idea} onChange={setIdea} onSubmit={handleUnderstand} />
       )}
       {stage === 'quicksetup' && (
-        <QuickSetupPanel onContinue={handleQuickSetupContinue} />
+        <QuickSetupPanel idea={idea} onContinue={handleQuickSetupContinue} />
       )}
       {stage === 'recommending' && (
         <LoadingState message="Analyzing your idea..." />

@@ -39,7 +39,7 @@ def _inject_urls(result: dict) -> dict:
     return result
 
 
-def get_context_advice(idea: str, constraints: dict, recommended: dict) -> dict:
+def get_context_advice(idea: str, constraints: dict, recommended: dict, derived: dict | None = None) -> dict:
     """
     Given an idea, constraints, and the chosen tech stack, generate context-specific
     benefits/drawbacks for each architecture choice and all three deployment options.
@@ -50,7 +50,7 @@ def get_context_advice(idea: str, constraints: dict, recommended: dict) -> dict:
             "deployment":   [ { Render }, { AWS }, { Self-hosted } ]
         }
     """
-    constraints_block = _format_constraints(constraints or {})
+    constraints_block = _format_constraints(constraints or {}, derived=derived)
     stack_summary = (
         f"Scope: {recommended.get('scope', 'unknown')}, "
         f"Backend: {recommended.get('backend', 'unknown')}, "

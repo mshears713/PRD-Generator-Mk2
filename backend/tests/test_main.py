@@ -25,6 +25,37 @@ def test_recommend_returns_200():
     assert "reason" in data["confidence"]
 
 
+def test_recommend_accepts_answers_payload():
+    payload = {
+        "idea": "A scheduled report exporter",
+        "answers": {
+            "fixed_answers": {
+                "for_whom": "small",
+                "accounts": "none",
+                "remember_over_time": "temporary",
+                "reliability_vs_speed": "reliable",
+            },
+            "dynamic_answers": {
+                "output_type": "file_export",
+                "automation_level": "scheduled",
+            },
+        },
+    }
+    response = client.post("/recommend", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert "recommended" in data
+    assert "api_candidates" in data
+
+
+def test_quick_setup_questions_returns_two_questions():
+    response = client.post("/quick-setup/questions", json={"idea": "A Slack bot that exports reports as PDF"})
+    assert response.status_code == 200
+    data = response.json()
+    assert "questions" in data
+    assert len(data["questions"]) == 2
+
+
 def test_generate_returns_200():
     payload = {
         "idea": "A task manager for remote teams",
