@@ -60,16 +60,16 @@ test('renders fixed + dynamic questions and continues with structured answers', 
   render(<QuickSetupPanel idea="A report exporter" onContinue={onContinue} />)
 
   expect(screen.getByText('Quick Setup')).toBeInTheDocument()
-  expect(screen.getByText('Who is this for?')).toBeInTheDocument()
+  expect(screen.getByText('How many users should this support?')).toBeInTheDocument()
 
   await screen.findByText('What should it produce at the end?')
 
-  fireEvent.click(screen.getByText('Public'))
+  fireEvent.click(screen.getByText('1000+'))
   fireEvent.click(screen.getByText('A downloadable file'))
 
   const explain = screen.getAllByText(/What does this choice change/i)[0]
   fireEvent.click(explain)
-  expect(screen.getByText(/Sets user_scale/i)).toBeInTheDocument()
+  expect(screen.getByText(/user_scale/i)).toBeInTheDocument()
 
   fireEvent.click(screen.getByText(/Continue/i))
 

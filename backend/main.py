@@ -69,12 +69,15 @@ class ApiCandidate(BaseModel):
     id: str
     name: str
     category: str
+    summary: Optional[str] = None
     status: str
     recommended: bool = False
     reason: str
     why_not: Optional[str] = None
     sponsored: Optional[bool] = None
     sponsor_note: Optional[str] = None
+    best_for: list[str] = []
+    avoid_when: list[str] = []
     tags: list[str] = []
     complexity: Optional[str] = None
     backend_required: Optional[bool] = None

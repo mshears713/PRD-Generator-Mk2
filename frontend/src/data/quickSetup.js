@@ -1,5 +1,5 @@
 export const DEFAULT_FIXED_ANSWERS = {
-  for_whom: 'small',
+  for_whom: 'scale_10',
   accounts: 'none',
   remember_over_time: 'temporary',
   reliability_vs_speed: 'balanced',
@@ -8,38 +8,60 @@ export const DEFAULT_FIXED_ANSWERS = {
 export const FIXED_QUESTIONS = [
   {
     id: 'for_whom',
-    question: 'Who is this for?',
+    question: 'How many users should this support?',
     options: [
       {
-        label: 'Just me',
-        value: 'single',
+        label: '1',
+        value: 'scale_1',
         technical_effect: {
           explanation: 'Keeps the architecture lightweight and avoids multi-user complexity.',
           constraint_impacts: [
-            'Sets user_scale = single',
+            'Maps to user_scale = single',
             'Optimizes for minimal infrastructure and simplest deployment',
           ],
         },
       },
       {
-        label: 'Small group',
-        value: 'small',
+        label: '10',
+        value: 'scale_10',
         technical_effect: {
           explanation: 'Supports a handful of users without overbuilding for massive scale.',
           constraint_impacts: [
-            'Sets user_scale = small',
+            'Maps to user_scale = small',
             'Allows simple auth/storage patterns without heavy scaling work',
           ],
         },
       },
       {
-        label: 'Public',
-        value: 'large',
+        label: '100',
+        value: 'scale_100',
         technical_effect: {
-          explanation: 'Shifts decisions toward reliability, concurrency, and predictable performance.',
+          explanation: 'Supports small-to-moderate usage while keeping the system straightforward.',
           constraint_impacts: [
-            'Sets user_scale = large',
-            'Biases toward caching, rate limiting, and scalable deployment choices',
+            'Maps to user_scale = small',
+            'Biases toward simple caching and pragmatic limits (not heavy autoscaling)',
+          ],
+        },
+      },
+      {
+        label: '1000',
+        value: 'scale_1000',
+        technical_effect: {
+          explanation: 'Introduces real concurrency and reliability constraints.',
+          constraint_impacts: [
+            'Maps to user_scale = large',
+            'Biases toward rate limiting, caching, and predictable performance under load',
+          ],
+        },
+      },
+      {
+        label: '1000+',
+        value: 'scale_1000_plus',
+        technical_effect: {
+          explanation: 'Assumes broad/public usage and pushes choices toward scalable defaults.',
+          constraint_impacts: [
+            'Maps to user_scale = large',
+            'Biases toward capacity planning, rate limiting, and scalable deployment choices',
           ],
         },
       },
@@ -152,4 +174,3 @@ export const FIXED_QUESTIONS = [
     ],
   },
 ]
-
