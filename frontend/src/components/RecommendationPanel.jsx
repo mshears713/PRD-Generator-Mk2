@@ -1,3 +1,4 @@
+import { Button, Card, Chip } from '@heroui/react'
 import SelectionCards from './SelectionCards'
 import DeploymentRow from './DeploymentRow'
 
@@ -15,82 +16,103 @@ export default function RecommendationPanel({
   )
 
   return (
-    <div className="recommendation-stage">
+    <div className="flex flex-col gap-8">
 
-      {/* ── 1. Overview (hero, full-width) with system type tag inline ───── */}
-      <div className="summary-card summary-card-hero">
-        <div className="overview-header">
-          <p className="summary-label">Overview</p>
-          {systemType && <span className="system-type-tag">{systemType}</span>}
-        </div>
-        <p className="summary-text summary-text-hero">{summary}</p>
-      </div>
+      {/* 1. Overview */}
+      <Card className="border border-accent/25">
+        <Card.Content className="p-6">
+          <div className="flex items-center gap-2 mb-2">
+            <p className="text-xs font-bold uppercase tracking-widest text-accent">Overview</p>
+            {systemType && (
+              <Chip size="sm" color="accent" variant="soft">{systemType}</Chip>
+            )}
+          </div>
+          <p className="text-foreground leading-relaxed">{summary}</p>
+        </Card.Content>
+      </Card>
 
-      {/* ── 2. Core Logic + Key Requirements + Scope Boundaries (3-col) ──── */}
+      {/* 2. Core Logic + Key Requirements + Scope Boundaries */}
       {(coreSystemLogic || keyRequirements?.length > 0 || scopeBoundaries?.length > 0) && (
-        <div className="insight-grid insight-grid-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {coreSystemLogic && (
-            <div className="summary-card">
-              <p className="summary-label">Core Logic</p>
-              <p className="summary-text">{coreSystemLogic}</p>
-            </div>
+            <Card>
+              <Card.Content className="p-5">
+                <p className="text-xs font-bold uppercase tracking-widest text-accent mb-2">Core Logic</p>
+                <p className="text-foreground text-sm">{coreSystemLogic}</p>
+              </Card.Content>
+            </Card>
           )}
           {keyRequirements?.length > 0 && (
-            <div className="summary-card">
-              <p className="summary-label">Key Requirements</p>
-              <ul className="requirements-list">
-                {keyRequirements.map((req, i) => <li key={i}>{req}</li>)}
-              </ul>
-            </div>
+            <Card>
+              <Card.Content className="p-5">
+                <p className="text-xs font-bold uppercase tracking-widest text-accent mb-2">Key Requirements</p>
+                <ul className="flex flex-col gap-1.5">
+                  {keyRequirements.map((req, i) => (
+                    <li key={i} className="text-sm text-foreground pl-3 relative before:content-['•'] before:absolute before:left-0 before:text-accent">
+                      {req}
+                    </li>
+                  ))}
+                </ul>
+              </Card.Content>
+            </Card>
           )}
           {scopeBoundaries?.length > 0 && (
-            <div className="summary-card">
-              <p className="summary-label">Scope Boundaries</p>
-              <ul className="requirements-list">
-                {scopeBoundaries.map((b, i) => <li key={i}>{b}</li>)}
-              </ul>
-            </div>
+            <Card>
+              <Card.Content className="p-5">
+                <p className="text-xs font-bold uppercase tracking-widest text-accent mb-2">Scope Boundaries</p>
+                <ul className="flex flex-col gap-1.5">
+                  {scopeBoundaries.map((b, i) => (
+                    <li key={i} className="text-sm text-foreground pl-3 relative before:content-['•'] before:absolute before:left-0 before:text-accent">
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+              </Card.Content>
+            </Card>
           )}
         </div>
       )}
 
-      {/* ── 3. Why This Setup (full-width row) ───────────────────────────── */}
+      {/* 3. Why This Setup */}
       {rationale && (
-        <div className="summary-card">
-          <p className="summary-label">Why This Setup</p>
-          <div className="rationale-grid">
-            {RATIONALE_KEYS.map(key => rationale[key] && (
-              <div key={key} className="rationale-row">
-                <span className="rationale-key">{key}</span>
-                <span className="rationale-val">{rationale[key]}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <Card>
+          <Card.Content className="p-5">
+            <p className="text-xs font-bold uppercase tracking-widest text-accent mb-3">Why This Setup</p>
+            <div className="flex flex-col gap-2.5">
+              {RATIONALE_KEYS.map(key => rationale[key] && (
+                <div key={key} className="grid grid-cols-[72px_1fr] gap-3 items-baseline">
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-muted pt-0.5">{key}</span>
+                  <span className="text-sm text-foreground leading-relaxed">{rationale[key]}</span>
+                </div>
+              ))}
+            </div>
+          </Card.Content>
+        </Card>
       )}
 
-      {/* ── 4. Recommended Setup ─────────────────────────────────────────── */}
+      {/* 4. Recommended Setup */}
       <div>
-        <h2 className="section-title">
+        <h2 className="text-base font-semibold mb-4">
           Recommended Setup{' '}
-          <span className="editable-note">(fully editable)</span>
+          <span className="text-muted font-normal text-sm">(fully editable)</span>
         </h2>
         <SelectionCards selections={selections} onChange={onChange} architectureData={architectureData} />
       </div>
 
-      {/* ── 5. Deployment ────────────────────────────────────────────────── */}
+      {/* 5. Deployment */}
       <div>
-        <h2 className="section-title">Deployment</h2>
+        <h2 className="text-base font-semibold mb-4">Deployment</h2>
         <DeploymentRow value={deployment} onChange={onDeploymentChange} deploymentOptions={deploymentOptions} />
       </div>
 
-      <button
-        className="btn-primary"
-        onClick={onGenerate}
-        disabled={!canGenerate}
+      <Button
+        variant="primary"
+        className="w-full"
+        onPress={onGenerate}
+        isDisabled={!canGenerate}
       >
         Generate Blueprint →
-      </button>
+      </Button>
     </div>
   )
 }

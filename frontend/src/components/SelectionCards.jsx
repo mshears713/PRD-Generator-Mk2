@@ -1,3 +1,4 @@
+import { Button, Chip, Input } from '@heroui/react'
 import DecisionCard from './DecisionCard'
 import { STACK_DETAILS, API_DETAILS } from '../data/options'
 
@@ -17,11 +18,6 @@ const LABELS = {
   database: 'Database',
 }
 
-/**
- * Build the DecisionCard props for a selected stack option.
- * Backend data (benefits/drawbacks/reason) always wins over static.
- * Static data provides name and subtitle (backend doesn't include these).
- */
 function resolveDetail(field, value, architectureData) {
   if (!value) return null
   const staticDetail = STACK_DETAILS[field]?.[value]
@@ -37,35 +33,39 @@ function resolveDetail(field, value, architectureData) {
   }
 }
 
-// Single-select field group with a DecisionCard detail panel for the selected option
 function StackGroup({ field, selections, onSelect, architectureData }) {
   const selected = selections[field]
   const recommended = architectureData?.[field]?.recommended
   const detail = resolveDetail(field, selected, architectureData)
 
-  // Only show options that are relevant (or all if no advice yet)
   const visibleOptions = OPTIONS[field].filter(opt => {
     const optData = architectureData?.[field]?.options?.[opt]
     return !optData || optData.relevant !== false
   })
 
   return (
-    <div className="card-group">
-      <label className="card-group-label">{LABELS[field]}</label>
-      <div className="card-row">
+    <div className="flex flex-col gap-2">
+      <label className="text-xs font-bold uppercase tracking-wide text-muted">
+        {LABELS[field]}
+      </label>
+      <div className="flex flex-wrap gap-2">
         {visibleOptions.map(opt => {
           const staticMeta = STACK_DETAILS[field]?.[opt]
           const isRec = opt === recommended
+          const isSelected = selected === opt
           return (
-            <button
+            <Button
               key={opt}
-              type="button"
-              className={`card-btn${selected === opt ? ' selected' : ''}${isRec ? ' card-btn-recommended' : ''}`}
-              onClick={() => onSelect(field, opt)}
+              variant={isSelected ? 'secondary' : 'outline'}
+              size="sm"
+              onPress={() => onSelect(field, opt)}
+              className="capitalize"
             >
               {staticMeta?.name || opt}
-              {isRec && <span className="card-rec-badge" title="Recommended">★</span>}
-            </button>
+              {isRec && (
+                <Chip size="sm" color="accent" className="ml-1 text-[10px]">★</Chip>
+              )}
+            </Button>
           )
         })}
       </div>
@@ -106,9 +106,8 @@ export default function SelectionCards({ selections, onChange, architectureData 
   const selectedApis = selections.apis || []
 
   return (
-    <div className="selection-cards">
+    <div className="flex flex-col gap-6">
 
-      {/* Scope / Backend / Frontend — each with a backend-aware detail panel */}
       {['scope', 'backend', 'frontend'].map(field => (
         <StackGroup
           key={field}
@@ -119,28 +118,32 @@ export default function SelectionCards({ selections, onChange, architectureData 
         />
       ))}
 
-      {/* APIs — multi-select chips with sponsored badges, DecisionCard per selected */}
-      <div className="card-group">
-        <label className="card-group-label">{LABELS.apis}</label>
-        <div className="card-row">
+      {/* APIs — multi-select */}
+      <div className="flex flex-col gap-2">
+        <label className="text-xs font-bold uppercase tracking-wide text-muted">
+          {LABELS.apis}
+        </label>
+        <div className="flex flex-wrap gap-2">
           {OPTIONS.apis.map(api => {
             const meta = API_DETAILS[api]
             const isSelected = selectedApis.includes(api)
             return (
-              <button
+              <Button
                 key={api}
-                type="button"
-                className={`card-btn${isSelected ? ' selected' : ''}${meta?.sponsored ? ' card-btn-sponsored' : ''}`}
-                onClick={() => toggleApi(api)}
+                variant={isSelected ? 'secondary' : 'outline'}
+                size="sm"
+                onPress={() => toggleApi(api)}
+                className={meta?.sponsored ? 'border-warning/55' : ''}
               >
                 {meta?.name || api}
-                {meta?.sponsored && <span className="card-sponsored-star" title="Sponsored">✦</span>}
-              </button>
+                {meta?.sponsored && (
+                  <Chip size="sm" color="warning" className="ml-1 text-[10px]">✦</Chip>
+                )}
+              </Button>
             )
           })}
         </div>
 
-        {/* DecisionCard for each selected API (always uses static sponsored data) */}
         {selectedApis.map(api => {
           const meta = API_DETAILS[api]
           if (!meta) return null
@@ -158,21 +161,24 @@ export default function SelectionCards({ selections, onChange, architectureData 
           )
         })}
 
-        {/* API key inputs */}
         {selectedApis.map(api => (
-          <div className="api-key-input" key={`key-${api}`}>
-            <label>{API_DETAILS[api]?.name || api} API key</label>
-            <input
+          <div key={`key-${api}`} className="flex flex-col gap-1">
+            <label className="text-xs text-muted capitalize">
+              {API_DETAILS[api]?.name || api} API key
+            </label>
+            <Input
               type="text"
               placeholder={`Enter your ${API_DETAILS[api]?.name || api} key...`}
               value={selections.api_keys?.[api] || ''}
               onChange={e => setApiKey(api, e.target.value)}
+              aria-label={`${API_DETAILS[api]?.name || api} API key`}
+              className="max-w-sm font-mono"
             />
           </div>
         ))}
       </div>
 
-      {/* Database — with backend-aware detail panel */}
+      {/* Database */}
       <StackGroup
         field="database"
         selections={selections}

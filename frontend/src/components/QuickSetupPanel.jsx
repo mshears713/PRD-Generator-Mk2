@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Button, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 
 const DEFAULT_CONSTRAINTS = {
   user_scale: 'small',
@@ -6,48 +7,6 @@ const DEFAULT_CONSTRAINTS = {
   data: { types: [], persistence: 'temporary' },
   execution: 'short',
   app_shape: 'simple',
-}
-
-function SegmentedControl({ options, value, onChange }) {
-  return (
-    <div className="segmented-control">
-      {options.map(opt => (
-        <button
-          key={opt.value}
-          type="button"
-          className={`seg-btn${value === opt.value ? ' selected' : ''}`}
-          onClick={() => onChange(opt.value)}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function ChipGroup({ options, value, onChange, multi = false }) {
-  function toggle(v) {
-    if (multi) {
-      onChange(value.includes(v) ? value.filter(x => x !== v) : [...value, v])
-    } else {
-      onChange(v)
-    }
-  }
-  const isSelected = v => (multi ? value.includes(v) : value === v)
-  return (
-    <div className="chip-group">
-      {options.map(opt => (
-        <button
-          key={opt.value}
-          type="button"
-          className={`chip${isSelected(opt.value) ? ' selected' : ''}`}
-          onClick={() => toggle(opt.value)}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  )
 }
 
 export default function QuickSetupPanel({ onContinue }) {
@@ -61,103 +20,120 @@ export default function QuickSetupPanel({ onContinue }) {
     setC(prev => ({ ...prev, data: { ...prev.data, [key]: value } }))
   }
 
+  function handleSingle(setter) {
+    return (keys) => {
+      const val = [...keys][0]
+      if (val) setter(val)
+    }
+  }
+
+  function handleMulti(setter) {
+    return (keys) => setter([...keys])
+  }
+
   return (
-    <div className="quicksetup-stage">
-      <div className="quicksetup-header">
-        <p className="quicksetup-title">Quick Setup</p>
-        <p className="quicksetup-subtitle">5 questions · ~15 seconds</p>
+    <div className="flex flex-col gap-6">
+      <div className="text-center">
+        <p className="font-semibold text-foreground">Quick Setup</p>
+        <p className="text-muted text-sm mt-1">5 questions · ~15 seconds</p>
       </div>
 
-      <div className="quicksetup-questions">
+      <div className="flex flex-col">
 
         {/* 1. Users & Scale */}
-        <div className="qs-block">
-          <p className="qs-label">Who's using this?</p>
-          <SegmentedControl
-            value={c.user_scale}
-            onChange={v => set('user_scale', v)}
-            options={[
-              { value: 'single', label: 'Just me' },
-              { value: 'small', label: 'Small group' },
-              { value: 'large', label: 'Larger audience' },
-            ]}
-          />
+        <div className="bg-surface border border-border rounded-t-lg border-b-0 p-4">
+          <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">Who's using this?</p>
+          <ToggleButtonGroup
+            selectionMode="single"
+            selectedKeys={new Set([c.user_scale])}
+            onSelectionChange={handleSingle(v => set('user_scale', v))}
+            size="sm"
+          >
+            <ToggleButton id="single">Just me</ToggleButton>
+            <ToggleButton id="small"><ToggleButtonGroup.Separator />Small group</ToggleButton>
+            <ToggleButton id="large"><ToggleButtonGroup.Separator />Larger audience</ToggleButton>
+          </ToggleButtonGroup>
         </div>
 
         {/* 2. Accounts / Identity */}
-        <div className="qs-block">
-          <p className="qs-label">Accounts / login?</p>
-          <ChipGroup
-            value={c.auth}
-            onChange={v => set('auth', v)}
-            options={[
-              { value: 'none', label: 'No accounts' },
-              { value: 'simple', label: 'Email / magic link' },
-              { value: 'oauth', label: 'Social login' },
-            ]}
-          />
+        <div className="bg-surface border border-border border-b-0 p-4">
+          <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">Accounts / login?</p>
+          <ToggleButtonGroup
+            selectionMode="single"
+            selectedKeys={new Set([c.auth])}
+            onSelectionChange={handleSingle(v => set('auth', v))}
+            size="sm"
+          >
+            <ToggleButton id="none">No accounts</ToggleButton>
+            <ToggleButton id="simple"><ToggleButtonGroup.Separator />Email / magic link</ToggleButton>
+            <ToggleButton id="oauth"><ToggleButtonGroup.Separator />Social login</ToggleButton>
+          </ToggleButtonGroup>
         </div>
 
         {/* 3. Data & Storage */}
-        <div className="qs-block">
-          <p className="qs-label">What data does it handle?</p>
-          <ChipGroup
-            value={c.data.types}
-            onChange={v => setData('types', v)}
-            multi
-            options={[
-              { value: 'none', label: 'No storage' },
-              { value: 'text', label: 'Text / data' },
-              { value: 'files', label: 'Files (PDFs, images)' },
-              { value: 'results', label: 'Saved history' },
-            ]}
-          />
-          <div className="qs-toggle-row">
-            <span className="qs-toggle-label">Save long-term?</span>
-            <SegmentedControl
-              value={c.data.persistence}
-              onChange={v => setData('persistence', v)}
-              options={[
-                { value: 'temporary', label: 'Temporary' },
-                { value: 'permanent', label: 'Persistent' },
-              ]}
-            />
+        <div className="bg-surface border border-border border-b-0 p-4">
+          <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">What data does it handle?</p>
+          <ToggleButtonGroup
+            selectionMode="multiple"
+            selectedKeys={new Set(c.data.types)}
+            onSelectionChange={handleMulti(v => setData('types', v))}
+            size="sm"
+            className="flex-wrap"
+          >
+            <ToggleButton id="none">No storage</ToggleButton>
+            <ToggleButton id="text"><ToggleButtonGroup.Separator />Text / data</ToggleButton>
+            <ToggleButton id="files"><ToggleButtonGroup.Separator />Files (PDFs, images)</ToggleButton>
+            <ToggleButton id="results"><ToggleButtonGroup.Separator />Saved history</ToggleButton>
+          </ToggleButtonGroup>
+          <div className="flex items-center gap-3 mt-3 flex-wrap">
+            <span className="text-muted text-sm whitespace-nowrap">Save long-term?</span>
+            <ToggleButtonGroup
+              selectionMode="single"
+              selectedKeys={new Set([c.data.persistence])}
+              onSelectionChange={handleSingle(v => setData('persistence', v))}
+              size="sm"
+            >
+              <ToggleButton id="temporary">Temporary</ToggleButton>
+              <ToggleButton id="permanent"><ToggleButtonGroup.Separator />Persistent</ToggleButton>
+            </ToggleButtonGroup>
           </div>
         </div>
 
         {/* 4. Speed / Execution */}
-        <div className="qs-block">
-          <p className="qs-label">How fast does it need to respond?</p>
-          <SegmentedControl
-            value={c.execution}
-            onChange={v => set('execution', v)}
-            options={[
-              { value: 'realtime', label: 'Instant' },
-              { value: 'short', label: 'Few seconds' },
-              { value: 'async', label: 'Background' },
-            ]}
-          />
+        <div className="bg-surface border border-border border-b-0 p-4">
+          <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">How fast does it need to respond?</p>
+          <ToggleButtonGroup
+            selectionMode="single"
+            selectedKeys={new Set([c.execution])}
+            onSelectionChange={handleSingle(v => set('execution', v))}
+            size="sm"
+          >
+            <ToggleButton id="realtime">Instant</ToggleButton>
+            <ToggleButton id="short"><ToggleButtonGroup.Separator />Few seconds</ToggleButton>
+            <ToggleButton id="async"><ToggleButtonGroup.Separator />Background</ToggleButton>
+          </ToggleButtonGroup>
         </div>
 
         {/* 5. App Shape */}
-        <div className="qs-block">
-          <p className="qs-label">What shape is this app?</p>
-          <ChipGroup
-            value={c.app_shape}
-            onChange={v => set('app_shape', v)}
-            options={[
-              { value: 'simple', label: 'Simple tool' },
-              { value: 'ai_core', label: 'AI-powered tool' },
-              { value: 'workflow', label: 'Multi-step workflow' },
-            ]}
-          />
+        <div className="bg-surface border border-border rounded-b-lg p-4">
+          <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">What shape is this app?</p>
+          <ToggleButtonGroup
+            selectionMode="single"
+            selectedKeys={new Set([c.app_shape])}
+            onSelectionChange={handleSingle(v => set('app_shape', v))}
+            size="sm"
+          >
+            <ToggleButton id="simple">Simple tool</ToggleButton>
+            <ToggleButton id="ai_core"><ToggleButtonGroup.Separator />AI-powered tool</ToggleButton>
+            <ToggleButton id="workflow"><ToggleButtonGroup.Separator />Multi-step workflow</ToggleButton>
+          </ToggleButtonGroup>
         </div>
 
       </div>
 
-      <button className="btn-primary" onClick={() => onContinue(c)}>
+      <Button variant="primary" className="w-full" onPress={() => onContinue(c)}>
         Continue →
-      </button>
+      </Button>
     </div>
   )
 }

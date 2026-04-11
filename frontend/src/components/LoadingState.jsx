@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Spinner } from '@heroui/react'
 
 export default function LoadingState({ message, stages, cycleInterval = 6000 }) {
   const [index, setIndex] = useState(0)
@@ -13,9 +14,9 @@ export default function LoadingState({ message, stages, cycleInterval = 6000 }) 
   }, [stages, cycleInterval])
 
   return (
-    <div className="loading-state">
-      <div className="spinner" />
-      <p className="loading-message">{stages ? stages[index] : message}</p>
+    <div className="flex flex-col items-center py-16 gap-4">
+      <Spinner color="accent" />
+      <p className="text-muted text-sm">{stages ? stages[index] : message}</p>
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Alert } from '@heroui/react'
 import IdeaInput from './components/IdeaInput'
 import LoadingState from './components/LoadingState'
 import QuickSetupPanel from './components/QuickSetupPanel'
@@ -107,13 +108,24 @@ export default function App() {
   }
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>CodeGarden</h1>
-        <p className="app-tagline">Grow your idea into a build-ready blueprint</p>
+    <div className="max-w-[1100px] mx-auto px-6 py-8 pb-16">
+      <header className="text-center mb-12">
+        <h1 className="text-4xl font-bold bg-gradient-to-br from-accent to-violet-400 bg-clip-text text-transparent">
+          CodeGarden
+        </h1>
+        <p className="text-muted mt-1 text-base">Grow your idea into a build-ready blueprint</p>
       </header>
 
-      {error && <div className="error-banner">{error}</div>}
+      {error && (
+        <div className="mb-6">
+          <Alert status="danger">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Description>{error}</Alert.Description>
+            </Alert.Content>
+          </Alert>
+        </div>
+      )}
 
       {stage === 'idea' && (
         <IdeaInput idea={idea} onChange={setIdea} onSubmit={handleUnderstand} />

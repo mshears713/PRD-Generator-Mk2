@@ -1,10 +1,7 @@
+import { Button, Chip } from '@heroui/react'
 import DecisionCard from './DecisionCard'
 import { DEPLOYMENT_OPTIONS } from '../data/options'
 
-/**
- * Normalize a deployment option from the backend or static source into
- * the shape DecisionCard expects (sponsorOffer as a single string).
- */
 function getSponsorOffer(opt) {
   if (opt.sponsor_info) {
     const { why_use = [], bonus = '' } = opt.sponsor_info
@@ -13,18 +10,12 @@ function getSponsorOffer(opt) {
   return opt.sponsorOffer || ''
 }
 
-/**
- * Merge a backend deployment option with its static counterpart.
- * Backend wins for benefits, drawbacks, recommended, reason.
- * Static wins for subtitle (backend doesn't provide this).
- */
 function mergeOption(backendOpt) {
   const staticOpt = DEPLOYMENT_OPTIONS.find(s => s.value === backendOpt.value) || {}
   return { ...staticOpt, ...backendOpt, subtitle: staticOpt.subtitle }
 }
 
 export default function DeploymentRow({ value, onChange, deploymentOptions }) {
-  // Prefer backend options (merged with static subtitles); fall back to static only
   const options = deploymentOptions?.length
     ? deploymentOptions.map(mergeOption)
     : DEPLOYMENT_OPTIONS
@@ -32,20 +23,22 @@ export default function DeploymentRow({ value, onChange, deploymentOptions }) {
   const selected = options.find(o => o.value === value)
 
   return (
-    <div className="card-group">
-      <label className="card-group-label">Deployment</label>
-
-      <div className="card-row">
+    <div className="flex flex-col gap-2">
+      <label className="text-xs font-bold uppercase tracking-wide text-muted">Deployment</label>
+      <div className="flex flex-wrap gap-2">
         {options.map(opt => (
-          <button
+          <Button
             key={opt.value}
-            type="button"
-            className={`card-btn${value === opt.value ? ' selected' : ''}${opt.sponsored ? ' card-btn-sponsored' : ''}`}
-            onClick={() => onChange(opt.value)}
+            variant={value === opt.value ? 'secondary' : 'outline'}
+            size="sm"
+            onPress={() => onChange(opt.value)}
+            className={opt.sponsored ? 'border-warning/55' : ''}
           >
             {opt.name}
-            {opt.sponsored && <span className="card-sponsored-star" title="Sponsored">✦</span>}
-          </button>
+            {opt.sponsored && (
+              <Chip size="sm" color="warning" className="ml-1 text-[10px]">✦</Chip>
+            )}
+          </Button>
         ))}
       </div>
 
