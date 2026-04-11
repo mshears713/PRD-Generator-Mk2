@@ -52,3 +52,15 @@ def test_multiple_apis_and_db():
 def test_result_is_string():
     result = build_env(["openrouter"], {}, "postgres")
     assert isinstance(result, str)
+
+
+def test_upstash_keys_present_when_selected():
+    result = build_env(["upstash_redis"], {}, "none")
+    assert "UPSTASH_REDIS_REST_URL=" in result
+    assert "UPSTASH_REDIS_REST_TOKEN=" in result
+
+
+def test_supabase_keys_for_database():
+    result = build_env([], {}, "supabase")
+    assert "SUPABASE_URL=" in result
+    assert "SUPABASE_ANON_KEY=" in result

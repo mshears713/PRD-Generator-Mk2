@@ -196,43 +196,6 @@ export const STACK_DETAILS = {
   },
 }
 
-export const API_DETAILS = {
-  openrouter: {
-    name: 'OpenRouter',
-    subtitle: 'Unified LLM API gateway',
-    learnMoreUrl: 'https://openrouter.ai/docs',
-    sponsored: true,
-    sponsorOffer: '$5 free credits on signup — access GPT-4o, Claude, and Gemini with a single API key',
-    benefits: [
-      'One key for 100+ LLM models',
-      'Pay per token, no monthly subscription',
-      'Automatic fallback routing between models',
-    ],
-    drawbacks: [
-      'Extra network hop vs. calling providers directly',
-      'Dependent on upstream provider availability',
-      'Not ideal if you need a strict single-provider SLA',
-    ],
-  },
-  tavily: {
-    name: 'Tavily',
-    subtitle: 'Real-time web search API',
-    learnMoreUrl: 'https://docs.tavily.com/',
-    sponsored: true,
-    sponsorOffer: '1,000 free searches/month — purpose-built for AI agents and pipelines',
-    benefits: [
-      'Live web data in your app, not stale embeddings',
-      'Structured results ready for LLM consumption',
-      'Built-in relevance ranking for AI workflows',
-    ],
-    drawbacks: [
-      'Search quality depends on web coverage',
-      'Rate limits apply on the free tier',
-      'Adds latency to each query',
-    ],
-  },
-}
-
 export const DEPLOYMENT_OPTIONS = [
   {
     value: 'render',

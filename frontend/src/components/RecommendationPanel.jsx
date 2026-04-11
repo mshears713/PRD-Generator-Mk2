@@ -7,7 +7,7 @@ const RATIONALE_KEYS = ['scope', 'backend', 'frontend', 'apis', 'database']
 export default function RecommendationPanel({
   summary, systemType, keyRequirements, rationale,
   coreSystemLogic, scopeBoundaries, phasedPlan,
-  selections, onChange, architectureData,
+  selections, onChange, architectureData, apiCandidates,
   deployment, onDeploymentChange, deploymentOptions,
   onGenerate,
 }) {
@@ -96,7 +96,12 @@ export default function RecommendationPanel({
           Recommended Setup{' '}
           <span className="text-muted font-normal text-sm">(fully editable)</span>
         </h2>
-        <SelectionCards selections={selections} onChange={onChange} architectureData={architectureData} />
+        <SelectionCards
+          selections={selections}
+          onChange={onChange}
+          architectureData={architectureData}
+          apiCandidates={apiCandidates}
+        />
       </div>
 
       {/* 5. Deployment */}

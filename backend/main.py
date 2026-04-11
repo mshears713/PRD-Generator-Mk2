@@ -58,6 +58,28 @@ class Rationale(BaseModel):
     database: str
 
 
+class ApiCandidate(BaseModel):
+    id: str
+    name: str
+    category: str
+    status: str
+    recommended: bool = False
+    reason: str
+    why_not: Optional[str] = None
+    sponsored: Optional[bool] = None
+    sponsor_note: Optional[str] = None
+    tags: list[str] = []
+    complexity: Optional[str] = None
+    backend_required: Optional[bool] = None
+    common_pairings: list[str] = []
+
+
+class ApiCandidates(BaseModel):
+    selected: list[ApiCandidate] = []
+    candidates: list[ApiCandidate] = []
+    rejected: list[ApiCandidate] = []
+
+
 class ConstraintImpact(BaseModel):
     constraint: str
     impact: str
@@ -111,6 +133,7 @@ class RecommendResponse(BaseModel):
     phased_plan: list[str]
     recommended: RecommendedStack
     rationale: Rationale
+    api_candidates: Optional[ApiCandidates] = None
     constraint_impact: list[ConstraintImpact]
     assumptions: list[str]
     confidence: Confidence

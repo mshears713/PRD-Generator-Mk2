@@ -25,6 +25,7 @@ export default function App() {
   const [scopeBoundaries, setScopeBoundaries] = useState([])
   const [phasedPlan, setPhasedPlan] = useState([])
   const [architectureData, setArchitectureData] = useState(null)
+  const [apiCandidates, setApiCandidates] = useState(null)
   const [deploymentOptions, setDeploymentOptions] = useState([])
   const [selections, setSelections] = useState({
     scope: '', backend: '', frontend: '', apis: [], database: '', api_keys: {},
@@ -58,6 +59,7 @@ export default function App() {
       setScopeBoundaries(data.scope_boundaries || [])
       setPhasedPlan(data.phased_plan || [])
       setArchitectureData(data.architecture || null)
+      setApiCandidates(data.api_candidates || null)
       const depOpts = data.deployment || []
       setDeploymentOptions(depOpts)
       const recommended = depOpts.find(d => d.recommended)
@@ -100,6 +102,7 @@ export default function App() {
     setScopeBoundaries([])
     setPhasedPlan([])
     setArchitectureData(null)
+    setApiCandidates(null)
     setDeploymentOptions([])
     setSelections({ scope: '', backend: '', frontend: '', apis: [], database: '', api_keys: {} })
     setDeployment('render')
@@ -148,6 +151,7 @@ export default function App() {
           selections={selections}
           onChange={setSelections}
           architectureData={architectureData}
+          apiCandidates={apiCandidates}
           deployment={deployment}
           onDeploymentChange={setDeployment}
           deploymentOptions={deploymentOptions}

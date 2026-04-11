@@ -5,6 +5,7 @@ from typing import Any
 from openai import OpenAI
 
 from config import USE_FAKE_LLM
+from pipeline.api_candidate_selector import select_api_candidates
 
 
 AI_KEYWORDS = {"ai", "llm", "assistant", "chatbot", "summarize", "generate", "classify"}
@@ -92,6 +93,14 @@ def _constraints_to_impact(constraints: dict) -> list[dict]:
             }
         )
 
+    if constraints.get("testing") is True:
+        impacts.append(
+            {
+                "constraint": "testing=true",
+                "impact": "builder expects hosted/platform-assisted testing support in the stack",
+            }
+        )
+
     return impacts
 
 
@@ -144,6 +153,7 @@ def _fake_recommender(input_data: dict) -> dict:
     persistence = data.get("persistence")
     execution = _constraint_value(constraints, "execution")
     app_shape = _constraint_value(constraints, "app_shape")
+    testing = constraints.get("testing") is True
 
     ai_core = app_shape == "ai_core" or _detect_keywords(idea, AI_KEYWORDS)
     workflow = app_shape == "workflow" or _detect_keywords(idea, WORKFLOW_KEYWORDS)
@@ -154,12 +164,9 @@ def _fake_recommender(input_data: dict) -> dict:
         "scope": scaffold.get("preferred", {}).get("scope", "fullstack"),
         "backend": scaffold.get("preferred", {}).get("backend", "fastapi"),
         "frontend": scaffold.get("preferred", {}).get("frontend", "react"),
-        "apis": scaffold.get("preferred", {}).get("apis", []),
+        "apis": [],
         "database": scaffold.get("preferred", {}).get("database", "none"),
     }
-
-    if ai_core and "openrouter" not in recommended["apis"]:
-        recommended["apis"].append("openrouter")
 
     if persistence == "permanent" or _detect_keywords(idea, PERSISTENCE_KEYWORDS):
         recommended["database"] = "postgres"
@@ -189,6 +196,9 @@ def _fake_recommender(input_data: dict) -> dict:
     if recommended["database"] not in {"postgres", "firebase", "none"}:
         recommended["database"] = "none"
 
+    api_candidates = select_api_candidates(idea, constraints)
+    recommended["apis"] = [item["id"] for item in api_candidates.get("selected", [])]
+
     constraint_impact = scaffold.get("constraint_impact") or _constraints_to_impact(constraints)
     if not constraint_impact:
         constraint_impact = [
@@ -214,7 +224,7 @@ def _fake_recommender(input_data: dict) -> dict:
         "scope": f"Chosen scope aligns with {constraint_ref} and keeps the build aligned to the required system shape.",
         "backend": f"Backend selection fits {constraint_ref} and supports the required execution path without excess overhead.",
         "frontend": f"Frontend choice reflects {constraint_ref} and the needed user interaction surface for this idea.",
-        "apis": f"API selection mirrors {constraint_ref} and only includes services required by the core workflow.",
+        "apis": "Selected APIs from curated registry that directly support the stated constraints and signals.",
         "database": f"Database choice matches {constraint_ref} and the persistence needs implied by the idea.",
     }
 
@@ -250,6 +260,7 @@ def _fake_recommender(input_data: dict) -> dict:
         "constraint_impact": constraint_impact,
         "assumptions": assumptions,
         "confidence": confidence,
+        "api_candidates": api_candidates,
     }
 
 

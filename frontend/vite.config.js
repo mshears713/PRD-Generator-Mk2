@@ -10,4 +10,8 @@ export default defineConfig({
       '/generate': 'http://localhost:8005',
     },
   },
+  test: {
+    environment: 'jsdom',
+    setupFiles: './vitest.setup.js',
+  },
 })
