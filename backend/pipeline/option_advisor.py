@@ -184,7 +184,7 @@ def _inject_option_urls(architecture: dict) -> dict:
     return architecture
 
 
-def get_all_option_advice(idea: str, constraints: dict, recommended: dict) -> dict:
+def get_all_option_advice(idea: str, constraints: dict, recommended: dict, derived: dict | None = None) -> dict:
     """
     Run one gpt-4o-mini call per option in parallel and return per-option advice for
     every selectable field.
@@ -197,7 +197,7 @@ def get_all_option_advice(idea: str, constraints: dict, recommended: dict) -> di
             "database": {"recommended": "postgres",  "options": {...}},
         }
     """
-    constraints_block = _format_constraints(constraints or {})
+    constraints_block = _format_constraints(constraints or {}, derived=derived)
     stack_context = (
         f"Scope: {recommended.get('scope', 'unknown')}, "
         f"Backend: {recommended.get('backend', 'unknown')}, "

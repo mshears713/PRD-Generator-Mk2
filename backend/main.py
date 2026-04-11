@@ -14,6 +14,8 @@ from pipeline.analyzer import analyze
 from pipeline.prd_gen import generate_prd
 from pipeline.growth import generate_growth_check
 from pipeline.env_builder import build_env
+from pipeline.question_generator import generate_dynamic_questions
+from pipeline.answer_mapper import map_answers_to_constraints
 
 load_dotenv()
 
@@ -30,6 +32,11 @@ app.add_middleware(
 class RecommendRequest(BaseModel):
     idea: str
     constraints: dict = {}
+    answers: Optional[dict] = None
+
+
+class QuickSetupQuestionsRequest(BaseModel):
+    idea: str
 
 
 class GenerateRequest(BaseModel):
@@ -146,14 +153,29 @@ def recommend(req: RecommendRequest):
     if not USE_FAKE_LLM and not os.getenv("OPENAI_API_KEY"):
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
     try:
-        result = get_recommendation(req.idea, req.constraints)
-        advice = get_context_advice(req.idea, req.constraints, result.get("recommended", {}))
-        option_advice = get_all_option_advice(req.idea, req.constraints, result.get("recommended", {}))
+        if req.answers:
+            fixed_answers = (req.answers or {}).get("fixed_answers") or {}
+            dynamic_answers = (req.answers or {}).get("dynamic_answers") or {}
+            mapped = map_answers_to_constraints(req.idea, fixed_answers, dynamic_answers)
+            constraints = mapped.get("constraints") or {}
+            derived = mapped.get("derived") or {}
+        else:
+            constraints = req.constraints or {}
+            derived = {}
+
+        result = get_recommendation(req.idea, constraints, derived=derived)
+        advice = get_context_advice(req.idea, constraints, result.get("recommended", {}), derived=derived)
+        option_advice = get_all_option_advice(req.idea, constraints, result.get("recommended", {}), derived=derived)
         result["architecture"] = option_advice
         result["deployment"] = advice.get("deployment")
         return result
     except ValueError as e:
         raise HTTPException(status_code=502, detail=f"LLM response error: {e}")
+
+
+@app.post("/quick-setup/questions")
+def quick_setup_questions(req: QuickSetupQuestionsRequest):
+    return {"questions": generate_dynamic_questions(req.idea)}
 
 
 @app.post("/generate")

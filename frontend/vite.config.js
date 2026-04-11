@@ -8,6 +8,7 @@ export default defineConfig({
     proxy: {
       '/recommend': 'http://localhost:8005',
       '/generate': 'http://localhost:8005',
+      '/quick-setup': 'http://localhost:8005',
     },
   },
   test: {

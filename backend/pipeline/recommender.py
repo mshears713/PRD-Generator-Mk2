@@ -4,63 +4,80 @@ from llm import call_llm
 from pipeline.api_candidate_selector import select_api_candidates
 
 
-def _format_constraints(constraints: dict) -> str:
+def _format_constraints(constraints: dict, derived: dict | None = None) -> str:
     """Convert a constraints dict into a plain-English block for the LLM prompt."""
-    if not constraints:
-        return ""
+    constraints = constraints or {}
+    derived = derived or {}
 
-    lines = ["System constraints (treat these as hard requirements, not suggestions):"]
+    lines: list[str] = []
+
+    system_lines = ["System constraints (treat these as hard requirements, not suggestions):"]
 
     user_scale = constraints.get("user_scale")
     if user_scale == "single":
-        lines.append("- Single user only — avoid multi-tenant architecture, shared state, or concurrency complexity")
+        system_lines.append("- Single user only — avoid multi-tenant architecture, shared state, or concurrency complexity")
     elif user_scale == "small":
-        lines.append("- Small group (10–100 users) — lightweight auth and storage, no need for horizontal scaling")
+        system_lines.append("- Small group (10–100 users) — lightweight auth and storage, no need for horizontal scaling")
     elif user_scale == "large":
-        lines.append("- Larger audience (100+ users) — design for concurrency, consider CDN and caching")
+        system_lines.append("- Larger audience (100+ users) — design for concurrency, consider CDN and caching")
 
     auth = constraints.get("auth")
     if auth == "none":
-        lines.append("- No authentication — skip login, accounts, sessions entirely")
+        system_lines.append("- No authentication — skip login, accounts, sessions entirely")
     elif auth == "simple":
-        lines.append("- Simple auth only (email/magic link) — no OAuth, no social login")
+        system_lines.append("- Simple auth only (email/magic link) — no OAuth, no social login")
     elif auth == "oauth":
-        lines.append("- Social login required (Google OAuth or similar)")
+        system_lines.append("- Social login required (Google OAuth or similar)")
 
     data = constraints.get("data") or {}
     types = data.get("types") or []
     if types and types != ["none"]:
         readable = [t for t in types if t != "none"]
         if readable:
-            lines.append(f"- Data types needed: {', '.join(readable)}")
+            system_lines.append(f"- Data types needed: {', '.join(readable)}")
     elif "none" in types:
-        lines.append("- No persistent storage — stateless, ephemeral tool")
+        system_lines.append("- No persistent storage — stateless, ephemeral tool")
 
     persistence = data.get("persistence")
     if persistence == "temporary":
-        lines.append("- Temporary storage only — data does not need to survive sessions")
+        system_lines.append("- Temporary storage only — data does not need to survive sessions")
     elif persistence == "permanent":
-        lines.append("- Long-term persistent storage required — data must be durable")
+        system_lines.append("- Long-term persistent storage required — data must be durable")
 
     execution = constraints.get("execution")
     if execution == "realtime":
-        lines.append("- Real-time response required — instant feedback, no background jobs")
+        system_lines.append("- Real-time response required — instant feedback, no background jobs")
     elif execution == "short":
-        lines.append("- Short processing acceptable (a few seconds) — synchronous API calls are fine")
+        system_lines.append("- Short processing acceptable (a few seconds) — synchronous API calls are fine")
     elif execution == "async":
-        lines.append("- Background/async execution — include job queue or worker pattern")
+        system_lines.append("- Background/async execution — include job queue or worker pattern")
 
     app_shape = constraints.get("app_shape")
     if app_shape == "simple":
-        lines.append("- Simple tool shape: single input → single output — keep architecture minimal")
+        system_lines.append("- Simple tool shape: single input → single output — keep architecture minimal")
     elif app_shape == "ai_core":
-        lines.append("- AI-powered core: LLM or ML is the primary logic, not just a helper")
+        system_lines.append("- AI-powered core: LLM or ML is the primary logic, not just a helper")
     elif app_shape == "workflow":
-        lines.append("- Multi-step workflow: include orchestration, pipeline stages, or agent logic")
+        system_lines.append("- Multi-step workflow: include orchestration, pipeline stages, or agent logic")
 
     testing = constraints.get("testing")
     if testing is True:
-        lines.append("- Testing support requested — include platform-assisted testing when relevant")
+        system_lines.append("- Testing support requested — include platform-assisted testing when relevant")
+
+    derived_lines = []
+    for key in ("interaction_mode", "integration_level", "output_type", "automation_level"):
+        value = derived.get(key)
+        if value:
+            derived_lines.append(f"- {key}={value}")
+
+    if len(system_lines) > 1:
+        lines.extend(system_lines)
+
+    if derived_lines:
+        if lines:
+            lines.append("")
+        lines.append("Derived context (treat these as hard requirements):")
+        lines.extend(derived_lines)
 
     return "\n".join(lines)
 
@@ -435,8 +452,8 @@ def _compute_confidence(scaffold: dict) -> dict:
     return {"score": score, "reason": reason}
 
 
-def get_recommendation(idea: str, constraints: dict = None) -> dict:
-    constraints_block = _format_constraints(constraints or {})
+def get_recommendation(idea: str, constraints: dict = None, derived: dict | None = None) -> dict:
+    constraints_block = _format_constraints(constraints or {}, derived=derived)
     scaffold = _build_decision_scaffold(idea, constraints or {})
     user_content = f"Idea: {idea}"
     if constraints_block:

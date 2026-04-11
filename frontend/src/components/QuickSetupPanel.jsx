@@ -1,142 +1,160 @@
-import React from 'react'
-import { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Button, ToggleButton, ToggleButtonGroup } from '@heroui/react'
+import { DEFAULT_FIXED_ANSWERS, FIXED_QUESTIONS } from '../data/quickSetup'
 
-const DEFAULT_CONSTRAINTS = {
-  user_scale: 'small',
-  auth: 'none',
-  data: { types: [], persistence: 'temporary' },
-  execution: 'short',
-  app_shape: 'simple',
-  testing: false,
+function ExplainDropdown({ option }) {
+  if (!option) return null
+  const explanation = option.technical_effect?.explanation
+  const impacts = option.technical_effect?.constraint_impacts || []
+
+  if (!explanation && impacts.length === 0) return null
+
+  return (
+    <details className="mt-3 rounded-md border border-border bg-surface/40 px-3 py-2">
+      <summary className="cursor-pointer text-sm text-muted select-none">
+        What does this choice change?
+      </summary>
+      <div className="mt-2 text-sm text-foreground">
+        {explanation && <p className="leading-relaxed">{explanation}</p>}
+        {impacts.length > 0 && (
+          <ul className="mt-2 flex flex-col gap-1">
+            {impacts.map((line, i) => (
+              <li key={i} className="text-muted pl-3 relative before:content-['•'] before:absolute before:left-0 before:text-accent">
+                {line}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </details>
+  )
 }
 
-export default function QuickSetupPanel({ onContinue }) {
-  const [c, setC] = useState(DEFAULT_CONSTRAINTS)
+function QuestionBlock({ question, value, onChange }) {
+  const selectedOption = useMemo(
+    () => question.options.find(o => o.value === value),
+    [question.options, value],
+  )
 
-  function set(key, value) {
-    setC(prev => ({ ...prev, [key]: value }))
+  return (
+    <div className="bg-surface border border-border rounded-lg p-4">
+      <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">{question.question}</p>
+      <ToggleButtonGroup
+        selectionMode="single"
+        selectedKeys={new Set([value])}
+        onSelectionChange={keys => {
+          const v = [...keys][0]
+          if (v) onChange(v)
+        }}
+        size="sm"
+        className="flex-wrap"
+      >
+        {question.options.map((opt, idx) => (
+          <React.Fragment key={opt.value}>
+            {idx > 0 && <ToggleButtonGroup.Separator />}
+            <ToggleButton id={opt.value}>{opt.label}</ToggleButton>
+          </React.Fragment>
+        ))}
+      </ToggleButtonGroup>
+      <ExplainDropdown option={selectedOption} />
+    </div>
+  )
+}
+
+export default function QuickSetupPanel({ idea, onContinue }) {
+  const [fixedAnswers, setFixedAnswers] = useState(DEFAULT_FIXED_ANSWERS)
+  const [dynamicQuestions, setDynamicQuestions] = useState([])
+  const [dynamicAnswers, setDynamicAnswers] = useState({})
+  const [dynamicLoading, setDynamicLoading] = useState(false)
+  const [dynamicError, setDynamicError] = useState('')
+
+  async function loadDynamicQuestions() {
+    if (!idea?.trim()) return
+    setDynamicLoading(true)
+    setDynamicError('')
+    try {
+      const res = await fetch('/quick-setup/questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea }),
+      })
+      if (!res.ok) throw new Error((await res.json()).detail || 'Failed to load questions')
+      const data = await res.json()
+      setDynamicQuestions(data.questions || [])
+    } catch (e) {
+      setDynamicQuestions([])
+      setDynamicError(e.message)
+    } finally {
+      setDynamicLoading(false)
+    }
   }
 
-  function setData(key, value) {
-    setC(prev => ({ ...prev, data: { ...prev.data, [key]: value } }))
-  }
+  useEffect(() => {
+    loadDynamicQuestions()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idea])
+
+  useEffect(() => {
+    setDynamicAnswers(prev => {
+      const next = { ...prev }
+      for (const q of dynamicQuestions) {
+        const existing = next[q.id]
+        const stillValid = q.options?.some(o => o.value === existing)
+        if (stillValid) continue
+        const first = q.options?.[0]?.value
+        if (first) next[q.id] = first
+      }
+      return next
+    })
+  }, [dynamicQuestions])
 
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
         <p className="font-semibold text-foreground">Quick Setup</p>
-        <p className="text-muted text-sm mt-1">5 questions · ~15 seconds</p>
+        <p className="text-muted text-sm mt-1">6 questions · ~20 seconds</p>
       </div>
 
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-4">
+        {FIXED_QUESTIONS.map(q => (
+          <QuestionBlock
+            key={q.id}
+            question={q}
+            value={fixedAnswers[q.id]}
+            onChange={v => setFixedAnswers(prev => ({ ...prev, [q.id]: v }))}
+          />
+        ))}
 
-        {/* 1. Users & Scale */}
-        <div className="bg-surface border border-border rounded-t-lg border-b-0 p-4">
-          <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">Who's using this?</p>
-          <ToggleButtonGroup
-            selectionMode="single"
-            selectedKeys={new Set([c.user_scale])}
-            onSelectionChange={keys => { const v = [...keys][0]; if (v) set('user_scale', v) }}
-            size="sm"
-          >
-            <ToggleButton id="single">Just me</ToggleButton>
-            <ToggleButton id="small"><ToggleButtonGroup.Separator />Small group</ToggleButton>
-            <ToggleButton id="large"><ToggleButtonGroup.Separator />Larger audience</ToggleButton>
-          </ToggleButtonGroup>
+        <div className="pt-2">
+          <p className="text-muted text-xs font-bold uppercase tracking-widest mb-2">Idea-based questions</p>
+          {dynamicLoading && (
+            <p className="text-muted text-sm">Loading questions…</p>
+          )}
+          {dynamicError && (
+            <div className="flex items-center gap-3 flex-wrap">
+              <p className="text-muted text-sm">Couldn’t load idea-based questions.</p>
+              <Button size="sm" variant="flat" onPress={loadDynamicQuestions}>
+                Retry
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* 2. Accounts / Identity */}
-        <div className="bg-surface border border-border border-b-0 p-4">
-          <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">Accounts / login?</p>
-          <ToggleButtonGroup
-            selectionMode="single"
-            selectedKeys={new Set([c.auth])}
-            onSelectionChange={keys => { const v = [...keys][0]; if (v) set('auth', v) }}
-            size="sm"
-          >
-            <ToggleButton id="none">No accounts</ToggleButton>
-            <ToggleButton id="simple"><ToggleButtonGroup.Separator />Email / magic link</ToggleButton>
-            <ToggleButton id="oauth"><ToggleButtonGroup.Separator />Social login</ToggleButton>
-          </ToggleButtonGroup>
-        </div>
-
-        {/* 3. Data & Storage */}
-        <div className="bg-surface border border-border border-b-0 p-4">
-          <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">What data does it handle?</p>
-          <ToggleButtonGroup
-            selectionMode="multiple"
-            selectedKeys={new Set(c.data.types)}
-            onSelectionChange={keys => setData('types', [...keys])}
-            size="sm"
-            className="flex-wrap"
-          >
-            <ToggleButton id="none">No storage</ToggleButton>
-            <ToggleButton id="text"><ToggleButtonGroup.Separator />Text / data</ToggleButton>
-            <ToggleButton id="files"><ToggleButtonGroup.Separator />Files (PDFs, images)</ToggleButton>
-            <ToggleButton id="results"><ToggleButtonGroup.Separator />Saved history</ToggleButton>
-          </ToggleButtonGroup>
-          <div className="flex items-center gap-3 mt-3 flex-wrap">
-            <span className="text-muted text-sm whitespace-nowrap">Save long-term?</span>
-            <ToggleButtonGroup
-              selectionMode="single"
-              selectedKeys={new Set([c.data.persistence])}
-              onSelectionChange={keys => { const v = [...keys][0]; if (v) setData('persistence', v) }}
-              size="sm"
-            >
-              <ToggleButton id="temporary">Temporary</ToggleButton>
-              <ToggleButton id="permanent"><ToggleButtonGroup.Separator />Persistent</ToggleButton>
-            </ToggleButtonGroup>
-          </div>
-        </div>
-
-        {/* 4. Speed / Execution */}
-        <div className="bg-surface border border-border border-b-0 p-4">
-          <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">How fast does it need to respond?</p>
-          <ToggleButtonGroup
-            selectionMode="single"
-            selectedKeys={new Set([c.execution])}
-            onSelectionChange={keys => { const v = [...keys][0]; if (v) set('execution', v) }}
-            size="sm"
-          >
-            <ToggleButton id="realtime">Instant</ToggleButton>
-            <ToggleButton id="short"><ToggleButtonGroup.Separator />Few seconds</ToggleButton>
-            <ToggleButton id="async"><ToggleButtonGroup.Separator />Background</ToggleButton>
-          </ToggleButtonGroup>
-        </div>
-
-        {/* 5. App Shape */}
-        <div className="bg-surface border border-border border-b-0 p-4">
-          <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">What shape is this app?</p>
-          <ToggleButtonGroup
-            selectionMode="single"
-            selectedKeys={new Set([c.app_shape])}
-            onSelectionChange={keys => { const v = [...keys][0]; if (v) set('app_shape', v) }}
-            size="sm"
-          >
-            <ToggleButton id="simple">Simple tool</ToggleButton>
-            <ToggleButton id="ai_core"><ToggleButtonGroup.Separator />AI-powered tool</ToggleButton>
-            <ToggleButton id="workflow"><ToggleButtonGroup.Separator />Multi-step workflow</ToggleButton>
-          </ToggleButtonGroup>
-        </div>
-
-        {/* 6. Testing support */}
-        <div className="bg-surface border border-border rounded-b-lg p-4">
-          <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">Include testing support?</p>
-          <ToggleButtonGroup
-            selectionMode="single"
-            selectedKeys={new Set([c.testing ? 'yes' : 'no'])}
-            onSelectionChange={keys => { const v = [...keys][0]; if (v === 'yes') set('testing', true); if (v === 'no') set('testing', false) }}
-            size="sm"
-          >
-            <ToggleButton id="no">Not now</ToggleButton>
-            <ToggleButton id="yes"><ToggleButtonGroup.Separator />Yes, include testing</ToggleButton>
-          </ToggleButtonGroup>
-        </div>
-
+        {dynamicQuestions.map(q => (
+          <QuestionBlock
+            key={q.id}
+            question={q}
+            value={dynamicAnswers[q.id]}
+            onChange={v => setDynamicAnswers(prev => ({ ...prev, [q.id]: v }))}
+          />
+        ))}
       </div>
 
-      <Button variant="primary" className="w-full" onPress={() => onContinue(c)}>
+      <Button
+        variant="primary"
+        className="w-full"
+        onPress={() => onContinue({ fixed_answers: fixedAnswers, dynamic_answers: dynamicAnswers })}
+      >
         Continue →
       </Button>
     </div>
