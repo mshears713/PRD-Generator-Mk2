@@ -11,7 +11,7 @@ const GENERATE_STAGES = [
   'Normalizing system definition...',
   'Analyzing architecture...',
   'Generating PRD...',
-  'Running Growth Check...',
+  'Running System Review...',
 ]
 
 export default function App() {
@@ -30,7 +30,7 @@ export default function App() {
   const [selections, setSelections] = useState({
     scope: '', backend: '', frontend: '', apis: [], database: '', api_keys: {},
   })
-  const [deployment, setDeployment] = useState('render')
+  const [deployment, setDeployment] = useState('self')
   const [output, setOutput] = useState(null)
   const [error, setError] = useState('')
 
@@ -62,8 +62,6 @@ export default function App() {
       setApiCandidates(data.api_candidates || null)
       const depOpts = data.deployment || []
       setDeploymentOptions(depOpts)
-      const recommended = depOpts.find(d => d.recommended)
-      if (recommended) setDeployment(recommended.value)
       setSelections({ ...data.recommended, api_keys: {} })
       setStage('recommendation')
     } catch (e) {
@@ -105,7 +103,7 @@ export default function App() {
     setApiCandidates(null)
     setDeploymentOptions([])
     setSelections({ scope: '', backend: '', frontend: '', apis: [], database: '', api_keys: {} })
-    setDeployment('render')
+    setDeployment('self')
     setOutput(null)
     setError('')
   }
@@ -113,10 +111,25 @@ export default function App() {
   return (
     <div className="max-w-[1100px] mx-auto px-6 py-8 pb-16">
       <header className="text-center mb-12">
-        <h1 className="text-4xl font-bold bg-gradient-to-br from-accent to-violet-400 bg-clip-text text-transparent">
-          PRD Generator
+        <h1 className="text-4xl font-bold flex items-center justify-center gap-2">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="w-7 h-7 text-accent"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="M20 20l-3.5-3.5" />
+          </svg>
+          <span className="bg-gradient-to-br from-accent to-violet-400 bg-clip-text text-transparent">
+            StackLens
+          </span>
         </h1>
-        <p className="text-muted mt-1 text-base">Turn your idea into a build-ready blueprint</p>
+        <p className="text-muted mt-1 text-base">From idea → architecture in minutes</p>
       </header>
 
       {error && (

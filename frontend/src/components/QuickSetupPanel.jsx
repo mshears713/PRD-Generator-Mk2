@@ -68,6 +68,15 @@ export default function QuickSetupPanel({ idea, onContinue }) {
   const [dynamicLoading, setDynamicLoading] = useState(false)
   const [dynamicError, setDynamicError] = useState('')
 
+  function mapFixedAnswersForBackend(answers) {
+    const next = { ...(answers || {}) }
+    const scale = next.for_whom
+    if (scale === 'scale_1') next.for_whom = 'single'
+    else if (scale === 'scale_10' || scale === 'scale_100') next.for_whom = 'small'
+    else if (scale === 'scale_1000' || scale === 'scale_1000_plus') next.for_whom = 'large'
+    return next
+  }
+
   async function loadDynamicQuestions() {
     if (!idea?.trim()) return
     setDynamicLoading(true)
@@ -109,7 +118,7 @@ export default function QuickSetupPanel({ idea, onContinue }) {
   }, [dynamicQuestions])
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 max-w-[760px] mx-auto w-full">
       <div className="text-center">
         <p className="font-semibold text-foreground">Quick Setup</p>
         <p className="text-muted text-sm mt-1">6 questions · ~20 seconds</p>
@@ -153,7 +162,7 @@ export default function QuickSetupPanel({ idea, onContinue }) {
       <Button
         variant="primary"
         className="w-full"
-        onPress={() => onContinue({ fixed_answers: fixedAnswers, dynamic_answers: dynamicAnswers })}
+        onPress={() => onContinue({ fixed_answers: mapFixedAnswersForBackend(fixedAnswers), dynamic_answers: dynamicAnswers })}
       >
         Continue →
       </Button>

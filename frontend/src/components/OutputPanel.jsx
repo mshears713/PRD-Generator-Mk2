@@ -1,19 +1,24 @@
 import { useState } from 'react'
 import { Button, Card, Disclosure } from '@heroui/react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
-function CopyButton({ text }) {
+function CopyButton({ text, label = 'Copy', copiedLabel = 'Copied!', variant = 'outline' }) {
   const [copied, setCopied] = useState(false)
 
-  function copy() {
-    navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopied(false)
+    }
   }
 
   return (
-    <Button variant="outline" size="sm" onPress={copy}>
-      {copied ? 'Copied!' : 'Copy'}
+    <Button variant={variant} size="sm" onPress={copy}>
+      {copied ? copiedLabel : label}
     </Button>
   )
 }
@@ -58,21 +63,51 @@ function GrowthCheckCards({ data }) {
 }
 
 export default function OutputPanel({ output, onReset }) {
+  function inferFilename(markdown) {
+    const firstLine = String(markdown || '').split('\n')[0] || ''
+    const name = firstLine.replace(/^#\s+/, '').replace(/\s+PRD\s*$/i, '').trim()
+    const safe = (name || 'StackLens_PRD').replace(/[^a-z0-9-_ ]/gi, '').trim().replace(/\s+/g, '_')
+    return `${safe || 'StackLens_PRD'}.md`
+  }
+
+  function downloadMarkdown(markdown) {
+    const blob = new Blob([markdown || ''], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = inferFilename(markdown)
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="flex flex-col gap-8">
 
       <Card>
         <Card.Content className="p-6">
-          <h2 className="text-base font-semibold mb-4">Growth Check</h2>
+          <h2 className="text-base font-semibold mb-4">System Review</h2>
           <GrowthCheckCards data={output.growth_check} />
         </Card.Content>
       </Card>
 
       <Card>
         <Card.Content className="p-6">
-          <h2 className="text-base font-semibold mb-4">PRD</h2>
+          <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+            <h2 className="text-base font-semibold">PRD</h2>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onPress={() => downloadMarkdown(output.prd)}>
+                Download PRD
+              </Button>
+              <CopyButton
+                text={output.prd}
+                label="Use with Codex"
+                copiedLabel="Copied for Codex!"
+                variant="secondary"
+              />
+            </div>
+          </div>
           <div className="markdown-body">
-            <ReactMarkdown>{output.prd}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{output.prd}</ReactMarkdown>
           </div>
         </Card.Content>
       </Card>

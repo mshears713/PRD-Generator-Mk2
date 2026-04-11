@@ -1,8 +1,36 @@
-import { Button, Card, Chip } from '@heroui/react'
+import { Button, Card } from '@heroui/react'
 import SelectionCards from './SelectionCards'
 import DeploymentRow from './DeploymentRow'
 
 const RATIONALE_KEYS = ['scope', 'backend', 'frontend', 'apis', 'database']
+
+function coreLogicToBullets(text) {
+  if (!text) return []
+  const raw = String(text).replace(/\r\n/g, '\n').trim()
+  if (!raw) return []
+
+  const lines = raw
+    .split('\n')
+    .map(s => s.trim())
+    .filter(Boolean)
+    .map(s => s.replace(/^[-•]\s+/, ''))
+
+  let bullets = lines.length > 1 ? lines : raw.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean)
+
+  bullets = bullets
+    .flatMap(s => s.split(/;\s+/).map(p => p.trim()).filter(Boolean))
+    .map(s => s.replace(/\s+/g, ' '))
+    .filter(Boolean)
+
+  while (bullets.length < 4) {
+    const idx = bullets.reduce((best, cur, i, arr) => (arr[i].length > arr[best].length ? i : best), 0)
+    const parts = bullets[idx]?.split(/,\s+/).map(s => s.trim()).filter(Boolean) || []
+    if (parts.length <= 1) break
+    bullets.splice(idx, 1, ...parts)
+  }
+
+  return bullets.slice(0, 5)
+}
 
 export default function RecommendationPanel({
   summary, systemType, keyRequirements, rationale,
@@ -21,10 +49,10 @@ export default function RecommendationPanel({
       {/* 1. Overview */}
       <Card className="border border-accent/25">
         <Card.Content className="p-6">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-baseline justify-between gap-4 mb-2">
             <p className="text-xs font-bold uppercase tracking-widest text-accent">Overview</p>
             {systemType && (
-              <Chip size="sm" color="accent" variant="soft">{systemType}</Chip>
+              <p className="text-sm font-semibold text-foreground text-right">{systemType}</p>
             )}
           </div>
           <p className="text-foreground leading-relaxed">{summary}</p>
@@ -38,7 +66,16 @@ export default function RecommendationPanel({
             <Card>
               <Card.Content className="p-5">
                 <p className="text-xs font-bold uppercase tracking-widest text-accent mb-2">Core Logic</p>
-                <p className="text-foreground text-sm">{coreSystemLogic}</p>
+                <ul className="flex flex-col gap-1.5">
+                  {coreLogicToBullets(coreSystemLogic).map((line, i) => (
+                    <li
+                      key={i}
+                      className="text-sm text-foreground pl-3 relative before:content-['•'] before:absolute before:left-0 before:text-accent"
+                    >
+                      {line}
+                    </li>
+                  ))}
+                </ul>
               </Card.Content>
             </Card>
           )}
