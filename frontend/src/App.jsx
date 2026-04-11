@@ -4,7 +4,7 @@ import LoadingState from './components/LoadingState'
 import QuickSetupPanel from './components/QuickSetupPanel'
 import RecommendationPanel from './components/RecommendationPanel'
 import OutputPanel from './components/OutputPanel'
-import './styles/main.css'
+import './styles/globals.css'
 
 const GENERATE_STAGES = [
   'Normalizing system definition...',
