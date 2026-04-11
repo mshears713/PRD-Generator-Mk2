@@ -58,3 +58,10 @@ def test_input_output_and_data_model_lists():
     assert len(result["input_output"]) >= 1
     assert isinstance(result["data_model"], list)
     assert len(result["data_model"]) >= 1
+
+
+def test_override_backend_reflected_in_io():
+    node_selections = {**SELECTIONS, "backend": "node"}
+    result = normalize("A chat app", node_selections)
+    joined_io = " ".join(result["input_output"]).lower()
+    assert "node/express" in joined_io or "node" in joined_io

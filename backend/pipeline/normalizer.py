@@ -3,6 +3,78 @@ import json
 from llm import call_llm
 
 
+def _build_stack_constraints(selections: dict) -> list[str]:
+    constraints = [
+        f"Backend selected: {selections.get('backend', 'none')}",
+        f"Frontend selected: {selections.get('frontend', 'none')}",
+        f"Database selected: {selections.get('database', 'none')}",
+    ]
+    apis = selections.get("apis") or []
+    if apis:
+        constraints.append(f"APIs selected: {', '.join(apis)}")
+    return constraints
+
+
+def _build_stack_io(selections: dict) -> list[str]:
+    backend = selections.get("backend", "none")
+    frontend = selections.get("frontend", "none")
+    database = selections.get("database", "none")
+
+    backend_label = "FastAPI" if backend == "fastapi" else "Node/Express" if backend == "node" else "Backend-less"
+    frontend_step = (
+        "Step 1: User submits input via frontend UI"
+        if frontend != "none"
+        else "Step 1: Client sends HTTP request directly to the API"
+    )
+    steps = [
+        frontend_step,
+        f"Step 2: {backend_label} endpoint validates request and routes to core logic" if backend != "none" else
+        "Step 2: Client-side logic validates input and calls core functions",
+        "Step 3: Core logic processes the request deterministically",
+    ]
+    if database != "none":
+        db_label = "Postgres" if database == "postgres" else "Firebase"
+        steps.append(f"Step 4: Results persisted in {db_label}")
+        steps.append("Step 5: JSON response returned")
+    else:
+        steps.append("Step 4: JSON response returned (no persistence)")
+    return steps
+
+
+def _build_data_model(selections: dict) -> list[str]:
+    database = selections.get("database", "none")
+    if database == "none":
+        return ["No persistent data stored"]
+    if database == "firebase":
+        return [
+            "Collection: requests {id, payload, created_at}",
+            "Collection: results {id, request_id, output, created_at}",
+        ]
+    # default to postgres style
+    return [
+        "Table: requests (id, payload, created_at)",
+        "Table: results (id, request_id, output, created_at)",
+    ]
+
+
+def _strip_conflicting_assumptions(assumptions: list[str], selections: dict) -> list[str]:
+    backend = selections.get("backend", "none")
+    frontend = selections.get("frontend", "none")
+    database = selections.get("database", "none")
+
+    filtered = []
+    for item in assumptions:
+        lower = item.lower()
+        if frontend == "none" and any(term in lower for term in ["ui", "screen", "frontend", "interface"]):
+            continue
+        if database == "none" and any(term in lower for term in ["persist", "database", "storage", "db"]):
+            continue
+        if backend == "none" and any(term in lower for term in ["api", "endpoint", "server", "backend"]):
+            continue
+        filtered.append(item)
+    return filtered or ["Assumptions aligned to provided stack selections"]
+
+
 def normalize(idea: str, selections: dict) -> dict:
     apis_str = ", ".join(selections["apis"]) if selections["apis"] else "none"
     stack_desc = (
@@ -34,6 +106,7 @@ def normalize(idea: str, selections: dict) -> dict:
                     "- assumptions: 3-5 explicit statements resolving ambiguity (format 'Assuming ...').\n"
                     "- unknowns: 2-4 precise gaps/questions the idea does not answer.\n"
                     "- Use only what the idea implies; do NOT invent complex features beyond the scope.\n"
+                    "- Assumptions must not contradict the stack selections.\n"
                     "- Be explicit: avoid verbs like 'handle/support' without describing the behavior.\n\n"
                     "- Output ONLY valid JSON. No markdown fences."
     )
@@ -54,6 +127,14 @@ def normalize(idea: str, selections: dict) -> dict:
         # Ensure required fields exist even if LLM omits them
         for key in ("assumptions", "unknowns", "input_output", "data_model", "constraints"):
             result.setdefault(key, [])
+
+        # Enforce stack alignment (selections are hard truth)
+        result["constraints"] = _build_stack_constraints(selections)
+        result["input_output"] = _build_stack_io(selections)
+        result["data_model"] = _build_data_model(selections)
+        result["assumptions"] = _strip_conflicting_assumptions(result.get("assumptions", []), selections)
+        result["selected_stack"] = selections
+
         return result
     except (json.JSONDecodeError, ValueError, TypeError) as e:
         raise ValueError(f"Normalizer received invalid JSON from LLM: {e}")

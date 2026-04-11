@@ -411,11 +411,12 @@ def _fake_normalizer(input_data: dict) -> dict:
     selections = input_data.get("selections") or {}
     system_name = "".join(word.capitalize() for word in idea.split()[:3]) or "Project"
     backend = selections.get("backend", "none")
+    frontend = selections.get("frontend", "none")
     database = selections.get("database", "none")
     has_db = database != "none"
     io_flow = [
-        "Step 1: User submits text input via frontend",
-        f"Step 2: {backend.capitalize() if backend != 'none' else 'Backend'} endpoint validates request and calls core logic",
+        "Step 1: User submits text input via frontend" if frontend != "none" else "Step 1: Client sends HTTP request directly to the API",
+        f"Step 2: {('FastAPI' if backend == 'fastapi' else 'Node/Express' if backend == 'node' else 'Client-side')} endpoint validates request and calls core logic",
         "Step 3: Core logic processes input deterministically",
         f"Step 4: {'Result stored in Postgres and ' if has_db else ''}response returned as JSON",
     ]
@@ -437,9 +438,9 @@ def _fake_normalizer(input_data: dict) -> dict:
         "input_output": io_flow,
         "data_model": data_model,
         "constraints": [
-            f"Backend: {backend} defines API layer",
-            f"Database: {database} selected",
-            f"Frontend: {selections.get('frontend', 'none')} for user input",
+            f"Backend selected: {backend}",
+            f"Database selected: {database}",
+            f"Frontend selected: {frontend}",
         ],
         "assumptions": [
             "Assuming text-based user input only",
@@ -450,21 +451,30 @@ def _fake_normalizer(input_data: dict) -> dict:
             "Scaling expectations not provided",
             "Latency budget unspecified",
         ],
+        "selected_stack": selections,
     }
 
 
 def _fake_analyzer(input_data: dict) -> dict:
+    selections = input_data.get("normalized", {}).get("selected_stack") or {}
+    backend = selections.get("backend", "fastapi")
+    frontend = selections.get("frontend", "react")
+    database = selections.get("database", "postgres")
+
+    include_ui = frontend != "none"
+    include_db = database != "none"
+
     return {
         "components": [
-            {"name": "API Layer", "responsibility": "Handles incoming requests and returns responses"},
+            {"name": f"{'FastAPI' if backend == 'fastapi' else 'Node/Express'} API Layer", "responsibility": "Handles incoming requests and returns responses"},
             {"name": "Core Service", "responsibility": "Executes the main business logic"},
-            {"name": "Data Store", "responsibility": "Persists system state when required"},
-            {"name": "UI Layer", "responsibility": "Collects user input and renders results"},
+            *([{"name": "Data Store", "responsibility": "Persists system state when required"}] if include_db else []),
+            *([{"name": "UI Layer", "responsibility": "Collects user input and renders results"}] if include_ui else []),
         ],
         "data_flow": [
-            "Step 1: User submits input via UI or API",
+            "Step 1: User submits input via UI or API" if include_ui else "Step 1: Client calls API endpoint",
             "Step 2: Core service processes the input",
-            "Step 3: Results are returned and stored if needed",
+            "Step 3: Results are returned and stored if needed" if include_db else "Step 3: Results are returned to the client",
         ],
         "dependencies": ["API Layer calls Core Service for processing"],
         "risks": ["Ambiguous requirements could lead to rework", "Scaling assumptions may need revision"],
@@ -473,11 +483,12 @@ def _fake_analyzer(input_data: dict) -> dict:
             "Database unavailable leads to failed persistence (if enabled)",
         ],
         "minimal_mvp_components": [
-            "FastAPI endpoint for primary action",
+            f"{'FastAPI' if backend == 'fastapi' else 'Node'} endpoint for primary action",
             "Core processing function",
-            "Result persistence or in-memory store",
-            "Basic UI or API client for submission",
+            "Result persistence or in-memory store" if include_db else "Response handling without persistence",
+            "Basic UI or API client for submission" if include_ui else "API client for submission",
         ],
+        "selected_stack": selections,
     }
 
 
@@ -519,14 +530,22 @@ def _fake_prd_gen(input_data: dict) -> dict:
 
 
 def _fake_growth(input_data: dict) -> dict:
+    selections = input_data.get("selections") or {}
+    database = selections.get("database", "postgres")
+    warnings = [
+        {"title": "Assumption risk", "detail": "Some constraints are assumed; confirm them before scaling."},
+    ]
+    if database == "firebase":
+        warnings.append({"title": "Database choice", "detail": "Firebase simplifies setup but limits complex relational queries."})
+    elif database == "postgres":
+        warnings.append({"title": "Database choice", "detail": "Postgres suits relational data; ensure migrations and backups are planned."})
+
     return {
         "good": [
             {"title": "Clear core flow", "detail": "The system focuses on a single primary workflow, reducing complexity."},
             {"title": "Constraint-aligned stack", "detail": "The chosen stack maps cleanly to the execution model."},
         ],
-        "warnings": [
-            {"title": "Assumption risk", "detail": "Some constraints are assumed; confirm them before scaling."},
-        ],
+        "warnings": warnings,
         "missing": [
             {"title": "Monitoring", "detail": "Add basic logging/metrics to detect failures early."},
         ],
@@ -536,6 +555,7 @@ def _fake_growth(input_data: dict) -> dict:
             "Set 30s timeout around external calls",
         ],
         "blockers": [],
+        "consistency_issues": [],
     }
 
 
