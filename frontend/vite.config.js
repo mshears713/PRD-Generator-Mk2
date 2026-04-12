@@ -9,6 +9,7 @@ export default defineConfig({
       '/recommend': 'http://localhost:8005',
       '/generate': 'http://localhost:8005',
       '/quick-setup': 'http://localhost:8005',
+      '/create-repo': 'http://localhost:8005',
     },
   },
   test: {

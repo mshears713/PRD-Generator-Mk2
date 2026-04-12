@@ -6,6 +6,15 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from config import USE_FAKE_LLM, prd_decomposition_enabled
+from services.github_bootstrap import (
+    build_kickoff_prompt,
+    build_scaffold_files,
+    extract_title_from_markdown,
+    next_name_with_suffix,
+    slugify_repo_name,
+    validate_repo_name_override,
+)
+from services.github_client import GitHubClient, GitHubError
 from pipeline.recommender import get_recommendation
 from pipeline.context_advisor import get_context_advice
 from pipeline.option_advisor import get_all_option_advice
@@ -58,6 +67,23 @@ class GenerateResponse(BaseModel):
     growth_check: dict
     # Backward-compat alias (legacy frontend expects `prd`)
     prd: str
+
+
+class CreateRepoRequest(BaseModel):
+    idea: Optional[str] = None
+    main_prd: str
+    backend_prd: Optional[str] = None
+    frontend_prd: Optional[str] = None
+    env: Optional[str] = None
+    repo_name: Optional[str] = None
+    private: bool = True
+
+
+class CreateRepoResponse(BaseModel):
+    repo_name: str
+    repo_url: str
+    kickoff_prompt: str
+    created_files: list[str]
 
 
 class RecommendedStack(BaseModel):
@@ -228,3 +254,75 @@ def generate(req: GenerateRequest):
         "growth_check": growth_check,
         "prd": prd,
     }
+
+
+def _missing_github_token() -> None:
+    raise HTTPException(
+        status_code=400,
+        detail="GITHUB_TOKEN not set. Set it to use Create GitHub Repo.",
+    )
+
+
+def _looks_like_name_conflict(err: GitHubError) -> bool:
+    if err.status_code != 422:
+        return False
+    msg = (err.message or "").lower()
+    return "name already exists" in msg or "already exists" in msg
+
+
+@app.post("/create-repo", response_model=CreateRepoResponse)
+def create_repo(req: CreateRepoRequest):
+    token = (os.getenv("GITHUB_TOKEN") or "").strip()
+    if not token:
+        _missing_github_token()
+
+    try:
+        if req.repo_name:
+            validate_repo_name_override(req.repo_name)
+            base_name = req.repo_name.strip()
+        else:
+            title = extract_title_from_markdown(req.main_prd) or (req.idea or "")
+            base_name = slugify_repo_name(title)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    files = build_scaffold_files(
+        main_prd=req.main_prd,
+        backend_prd=req.backend_prd,
+        frontend_prd=req.frontend_prd,
+        env_text=req.env,
+    )
+
+    commit_message = "Initial project scaffold from StackLens"
+
+    last_err: GitHubError | None = None
+    client = GitHubClient(token=token)
+    try:
+        for attempt in range(0, 6):
+            name = base_name if attempt == 0 else next_name_with_suffix(base_name, attempt)
+            try:
+                created = client.create_repo_with_initial_commit(
+                    name=name,
+                    private=req.private,
+                    files=files,
+                    commit_message=commit_message,
+                )
+                repo_url = created["repo_url"]
+                kickoff = build_kickoff_prompt(repo_url=repo_url, has_frontend=bool(req.frontend_prd))
+                return {
+                    "repo_name": created["repo_name"],
+                    "repo_url": repo_url,
+                    "kickoff_prompt": kickoff,
+                    "created_files": created.get("created_files") or sorted(files.keys()),
+                }
+            except GitHubError as e:
+                last_err = e
+                if attempt < 5 and _looks_like_name_conflict(e) and not req.repo_name:
+                    continue
+                raise HTTPException(status_code=e.status_code, detail=str(e))
+    finally:
+        client.close()
+
+    if last_err:
+        raise HTTPException(status_code=last_err.status_code, detail=str(last_err))
+    raise HTTPException(status_code=500, detail="Unknown error creating repository")

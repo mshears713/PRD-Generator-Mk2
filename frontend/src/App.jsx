@@ -175,7 +175,7 @@ export default function App() {
         <LoadingState stages={GENERATE_STAGES} cycleInterval={6000} />
       )}
       {stage === 'output' && (
-        <OutputPanel output={output} onReset={handleReset} />
+        <OutputPanel output={output} idea={idea} onReset={handleReset} />
       )}
     </div>
   )
