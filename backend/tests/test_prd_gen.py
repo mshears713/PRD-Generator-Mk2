@@ -17,6 +17,7 @@ FAKE_NORMALIZED = {
     "unknowns": ["Latency expectations unspecified"],
     "input_output": ["Step 1: User submits task → API stores it"],
     "data_model": ["Task: id, title"],
+    "selected_stack": {"scope": "fullstack", "backend": "fastapi", "frontend": "react", "apis": [], "database": "none"},
 }
 
 FAKE_ARCHITECTURE = {
@@ -35,5 +36,37 @@ def test_generate_prd_returns_string():
 
 def test_generate_prd_contains_required_sections():
     result = generate_prd(FAKE_NORMALIZED, FAKE_ARCHITECTURE)
-    for section in ["Overview", "Architecture", "Components", "Test Cases"]:
+    required = [
+        "## Overview",
+        "## System Contract (Source of Truth)",
+        "### 1. Core Entities",
+        "### 2. API Contract",
+        "### 3. Data Flow",
+        "### 4. Frontend / Backend Boundary",
+        "### 5. State Model (lightweight)",
+        "## Architecture",
+        "## Components",
+        "## API Usage",
+        "## Database Design",
+        "## Test Cases",
+        "## Implementation Notes for Build Agents",
+    ]
+    for section in required:
         assert section in result
+
+    assert "frontend_required: true" in result
+
+    # Ensure predictable ordering for downstream parsing.
+    ordered = [
+        "## Overview",
+        "## System Contract (Source of Truth)",
+        "## Architecture",
+        "## Components",
+        "## API Usage",
+        "## Database Design",
+        "## Test Cases",
+        "## Implementation Notes for Build Agents",
+    ]
+    positions = [result.find(h) for h in ordered]
+    assert all(p >= 0 for p in positions)
+    assert positions == sorted(positions)

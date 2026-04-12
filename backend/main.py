@@ -5,13 +5,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from config import USE_FAKE_LLM
+from config import USE_FAKE_LLM, prd_decomposition_enabled
 from pipeline.recommender import get_recommendation
 from pipeline.context_advisor import get_context_advice
 from pipeline.option_advisor import get_all_option_advice
 from pipeline.normalizer import normalize
 from pipeline.analyzer import analyze
 from pipeline.prd_gen import generate_prd
+from pipeline.prd_decomposer import decompose_prds
 from pipeline.growth import generate_growth_check
 from pipeline.env_builder import build_env
 from pipeline.question_generator import generate_dynamic_questions
@@ -47,6 +48,16 @@ class GenerateRequest(BaseModel):
     apis: list[str] = []
     database: str
     api_keys: dict[str, str] = {}
+
+
+class GenerateResponse(BaseModel):
+    main_prd: str
+    backend_prd: Optional[str] = None
+    frontend_prd: Optional[str] = None
+    env: str
+    growth_check: dict
+    # Backward-compat alias (legacy frontend expects `prd`)
+    prd: str
 
 
 class RecommendedStack(BaseModel):
@@ -181,7 +192,7 @@ def quick_setup_questions(req: QuickSetupQuestionsRequest):
     return {"questions": generate_dynamic_questions(req.idea)}
 
 
-@app.post("/generate")
+@app.post("/generate", response_model=GenerateResponse)
 def generate(req: GenerateRequest):
     if not USE_FAKE_LLM and not os.getenv("OPENAI_API_KEY"):
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
@@ -198,10 +209,22 @@ def generate(req: GenerateRequest):
         normalized = normalize(req.idea, selections)
         architecture = analyze(normalized)
         prd = generate_prd(normalized, architecture)
+        extra_prds = None
+        if prd_decomposition_enabled():
+            extra_prds = decompose_prds(prd, normalized, architecture)
         growth_check = generate_growth_check(prd, selections, normalized)
     except ValueError as e:
         raise HTTPException(status_code=502, detail=f"LLM response error: {e}")
 
     env = build_env(req.apis, req.api_keys, req.database)
 
-    return {"prd": prd, "env": env, "growth_check": growth_check}
+    backend_prd = extra_prds.get("backend_prd") if extra_prds else None
+    frontend_prd = extra_prds.get("frontend_prd") if extra_prds else None
+    return {
+        "main_prd": prd,
+        "backend_prd": backend_prd,
+        "frontend_prd": frontend_prd,
+        "env": env,
+        "growth_check": growth_check,
+        "prd": prd,
+    }
