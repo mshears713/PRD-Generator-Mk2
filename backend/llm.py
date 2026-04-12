@@ -506,11 +506,49 @@ def _fake_analyzer(input_data: dict) -> dict:
 def _fake_prd_gen(input_data: dict) -> dict:
     normalized = input_data.get("normalized") or {}
     system_name = normalized.get("system_name", "System")
+    selected_stack = normalized.get("selected_stack") or {}
+    frontend_required = (selected_stack.get("frontend") or "none") != "none"
+    backend_required = (selected_stack.get("backend") or "none") != "none"
+    api_contract_md = (
+        "No backend API required.\n\n"
+        if not backend_required
+        else (
+            "| Method | Path | Purpose | Input (high-level) | Output (high-level) |\n"
+            "|--------|------|---------|--------------------|---------------------|\n"
+            "| POST | /generate | Submit a request for processing | {payload: object} | {result: object} |\n"
+            "| GET | /health | Basic service health check | (none) | {status: string} |\n\n"
+        )
+    )
     content = (
         f"# {system_name} PRD\n\n"
         "## Overview\n"
         "This PRD defines the core workflow, users, and technical approach for the system. "
         "It focuses on delivering the primary value quickly with clear constraints.\n\n"
+        "## System Contract (Source of Truth)\n"
+        f"- frontend_required: {'true' if frontend_required else 'false'}\n\n"
+        "### 1. Core Entities\n"
+        "- **PrimaryRequest:** The user-submitted input payload that triggers processing.\n"
+        "- **PrimaryResult:** The structured output returned to the client.\n\n"
+        "### 2. API Contract\n"
+        f"{api_contract_md}"
+        "### 3. Data Flow\n"
+        "1. User submits input via UI (if present) or an API client.\n"
+        "2. API Layer validates and normalizes the request.\n"
+        "3. Core Service executes the main workflow.\n"
+        "4. Optional persistence stores request/result if enabled.\n"
+        "5. API Layer returns a JSON response to the client.\n\n"
+        "### 4. Frontend / Backend Boundary\n"
+        "**Frontend Responsibilities**\n"
+        "- Collect user input and display results.\n"
+        "- Manage client-side validation and UX state.\n"
+        "**Backend Responsibilities**\n"
+        "- Validate requests, run core logic, and return responses.\n"
+        "- Enforce server-side rules and manage persistence if enabled.\n\n"
+        "### 5. State Model (lightweight)\n"
+        "**Client State**\n"
+        "- Current form input, loading/error flags, last result.\n"
+        "**Server State**\n"
+        "- Optional persisted requests/results and configuration.\n\n"
         "## Architecture\n"
         "The system uses a simple API + service layer, with optional persistence where required. "
         "Components are intentionally minimal to keep delivery fast and focused.\n\n"
@@ -536,6 +574,96 @@ def _fake_prd_gen(input_data: dict) -> dict:
         "| Retry | Transient issue | Successful retry | integration |\n"
         "| Security | Invalid auth | Access denied | e2e |\n"
         "| Performance | High load | Acceptable latency | e2e |\n"
+        "\n"
+        "## Implementation Notes for Build Agents\n"
+        "- This PRD is a coordination layer that downstream agents will use to generate `backend_prd.md` and `frontend_prd.md`.\n"
+        "- The **System Contract (Source of Truth)**, especially the **API Contract**, must NOT be changed downstream.\n"
+        "- Implementation phases will be defined separately in each downstream PRD.\n"
+    )
+    return {"text": content}
+
+
+def _fake_backend_prd_gen(input_data: dict) -> dict:
+    normalized = input_data.get("normalized") or {}
+    system_name = normalized.get("system_name", "System")
+    content = (
+        f"# {system_name} Backend PRD\n\n"
+        "## Purpose\n"
+        "Define the backend responsibilities and implementation plan for the system.\n\n"
+        "## Responsibilities\n"
+        "- Implement the shared HTTP API and enforce server-side validation.\n"
+        "- Orchestrate core business logic and persistence/integrations as required.\n\n"
+        "## Integration Contract (From Main PRD — Do Not Change Without Updating Main PRD)\n"
+        "### Core Entities\n"
+        "{{STACKLENS_CORE_ENTITIES}}\n"
+        "### API Contract\n"
+        "{{STACKLENS_API_CONTRACT}}\n\n"
+        "## Architecture\n"
+        "- API layer routes requests to domain services.\n"
+        "- Persistence and external APIs are accessed behind adapters.\n\n"
+        "## Endpoints (Must match API Contract)\n"
+        "{{STACKLENS_API_CONTRACT}}\n\n"
+        "## Data / Models\n"
+        "- Define request/response models aligned to the API contract.\n\n"
+        "## External Integrations\n"
+        "- Call external APIs only as specified in the main PRD.\n\n"
+        "## Validation / Error Handling\n"
+        "- Validate inputs; return consistent error responses for invalid requests.\n\n"
+        "## Testing Strategy\n"
+        "- Unit test core logic; integration test endpoint flows.\n\n"
+        "## Out of Scope\n"
+        "- Do not add new endpoints or expand scope beyond the main PRD.\n\n"
+        "## Implementation Phases\n"
+        "- Phase 1 — Backend skeleton and contracts\n"
+        "- Phase 2 — Core request flow and business logic\n"
+        "- Phase 3 — External integrations and data handling\n"
+        "- Phase 4 — Validation, tests, and polish\n"
+    )
+    return {"text": content}
+
+
+def _fake_frontend_prd_gen(input_data: dict) -> dict:
+    normalized = input_data.get("normalized") or {}
+    system_name = normalized.get("system_name", "System")
+    content = (
+        f"# {system_name} Frontend PRD\n\n"
+        "## Purpose\n"
+        "Define the frontend responsibilities and implementation plan for the system.\n\n"
+        "## Responsibilities\n"
+        "- Collect user input, call the backend API, and render results.\n"
+        "- Manage client-side state, loading, and recoverable errors.\n\n"
+        "## Integration Contract (From Main PRD — Do Not Change Without Updating Main PRD)\n"
+        "### Core Entities\n"
+        "{{STACKLENS_CORE_ENTITIES}}\n"
+        "### API Contract\n"
+        "{{STACKLENS_API_CONTRACT}}\n\n"
+        "## Views / Screens\n"
+        "- Primary input view\n"
+        "- Results view\n\n"
+        "## User Flow\n"
+        "1. User enters input and submits.\n"
+        "2. Frontend calls the API and shows a loading state.\n"
+        "3. Results render, with retry on recoverable errors.\n\n"
+        "## Components\n"
+        "- Input form\n"
+        "- Results panel\n"
+        "- Error/empty states\n\n"
+        "## State Model\n"
+        "- input\n"
+        "- loading\n"
+        "- error\n"
+        "- result\n\n"
+        "## API Usage (Must match API Contract)\n"
+        "{{STACKLENS_API_CONTRACT}}\n\n"
+        "## UX / Loading / Error Handling\n"
+        "- Show clear loading indicators and inline validation.\n\n"
+        "## Out of Scope\n"
+        "- Do not invent endpoints or expand flows beyond the main PRD.\n\n"
+        "## Implementation Phases\n"
+        "- Phase 1 — App shell and primary flow\n"
+        "- Phase 2 — API wiring and state handling\n"
+        "- Phase 3 — Output rendering and UX polish\n"
+        "- Phase 4 — Edge handling and cleanup\n"
     )
     return {"text": content}
 
@@ -583,6 +711,10 @@ def fake_llm_response(agent_name: str, input_data: dict) -> dict:
         return _fake_analyzer(input_data)
     if agent_name == "prd_gen":
         return _fake_prd_gen(input_data)
+    if agent_name == "backend_prd_gen":
+        return _fake_backend_prd_gen(input_data)
+    if agent_name == "frontend_prd_gen":
+        return _fake_frontend_prd_gen(input_data)
     if agent_name == "growth":
         return _fake_growth(input_data)
     raise ValueError(f"No fake LLM implementation for agent: {agent_name}")

@@ -29,3 +29,10 @@ def _resolve_fake_flag() -> bool:
 
 
 USE_FAKE_LLM = _resolve_fake_flag()
+
+
+def prd_decomposition_enabled() -> bool:
+    env_flag = _str_to_bool(os.getenv("ENABLE_PRD_DECOMPOSITION"))
+    if env_flag is not None:
+        return env_flag
+    return True

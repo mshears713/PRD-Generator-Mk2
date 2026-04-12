@@ -10,7 +10,7 @@ import './styles/globals.css'
 const GENERATE_STAGES = [
   'Normalizing system definition...',
   'Analyzing architecture...',
-  'Generating PRD...',
+  'Generating PRDs...',
   'Running System Review...',
 ]
 

@@ -69,6 +69,7 @@ def test_generate_returns_200():
     response = client.post("/generate", json=payload)
     assert response.status_code == 200
     data = response.json()
+    assert "main_prd" in data
     assert "prd" in data
     assert "env" in data
     assert "growth_check" in data
@@ -86,3 +87,64 @@ def test_generate_env_contains_openrouter_key():
     }
     response = client.post("/generate", json=payload)
     assert "OPENROUTER_API_KEY=sk-test" in response.json()["env"]
+
+
+def test_generate_includes_backend_and_frontend_prds_when_enabled():
+    payload = {
+        "idea": "A task manager for remote teams",
+        "scope": "fullstack",
+        "backend": "fastapi",
+        "frontend": "react",
+        "apis": [],
+        "database": "none",
+        "api_keys": {},
+    }
+    response = client.post("/generate", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data.get("backend_prd")
+    assert data.get("frontend_prd")
+    assert "## Implementation Phases" in data["backend_prd"]
+    assert "## Implementation Phases" in data["frontend_prd"]
+
+
+def test_generate_omits_frontend_prd_when_frontend_is_none():
+    payload = {
+        "idea": "A task manager for remote teams",
+        "scope": "backend",
+        "backend": "fastapi",
+        "frontend": "none",
+        "apis": [],
+        "database": "none",
+        "api_keys": {},
+    }
+    response = client.post("/generate", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data.get("backend_prd")
+    assert data.get("frontend_prd") is None
+
+
+def test_generate_omits_decomposed_prds_when_flag_disabled():
+    payload = {
+        "idea": "A task manager for remote teams",
+        "scope": "fullstack",
+        "backend": "fastapi",
+        "frontend": "react",
+        "apis": [],
+        "database": "none",
+        "api_keys": {},
+    }
+    prev = os.environ.get("ENABLE_PRD_DECOMPOSITION")
+    os.environ["ENABLE_PRD_DECOMPOSITION"] = "0"
+    try:
+        response = client.post("/generate", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert data.get("backend_prd") is None
+        assert data.get("frontend_prd") is None
+    finally:
+        if prev is None:
+            del os.environ["ENABLE_PRD_DECOMPOSITION"]
+        else:
+            os.environ["ENABLE_PRD_DECOMPOSITION"] = prev

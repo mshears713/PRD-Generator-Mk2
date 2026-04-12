@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Button, Card, Disclosure } from '@heroui/react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Button, Card, Disclosure, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -63,6 +63,24 @@ function GrowthCheckCards({ data }) {
 }
 
 export default function OutputPanel({ output, onReset }) {
+  const docs = useMemo(() => {
+    const main = output?.main_prd || output?.prd || ''
+    const items = [
+      { key: 'main', label: 'Main PRD', markdown: main },
+    ]
+    if (output?.backend_prd) items.push({ key: 'backend', label: 'Backend PRD', markdown: output.backend_prd })
+    if (output?.frontend_prd) items.push({ key: 'frontend', label: 'Frontend PRD', markdown: output.frontend_prd })
+    return items
+  }, [output])
+
+  const [activeDocKey, setActiveDocKey] = useState('main')
+
+  useEffect(() => {
+    if (!docs.some(d => d.key === activeDocKey)) setActiveDocKey('main')
+  }, [docs, activeDocKey])
+
+  const activeDoc = docs.find(d => d.key === activeDocKey) || docs[0]
+
   function inferFilename(markdown) {
     const firstLine = String(markdown || '').split('\n')[0] || ''
     const name = firstLine.replace(/^#\s+/, '').replace(/\s+PRD\s*$/i, '').trim()
@@ -93,21 +111,48 @@ export default function OutputPanel({ output, onReset }) {
       <Card>
         <Card.Content className="p-6">
           <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-            <h2 className="text-base font-semibold">PRD</h2>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-base font-semibold">PRDs</h2>
+              {docs.length > 1 && (
+                <ToggleButtonGroup
+                  selectionMode="single"
+                  selectedKeys={new Set([activeDocKey])}
+                  onSelectionChange={keys => {
+                    const v = [...keys][0]
+                    if (v) setActiveDocKey(v)
+                  }}
+                  size="sm"
+                >
+                  {docs.map((d, idx) => (
+                    <React.Fragment key={d.key}>
+                      {idx > 0 && <ToggleButtonGroup.Separator />}
+                      <ToggleButton id={d.key}>{d.label}</ToggleButton>
+                    </React.Fragment>
+                  ))}
+                </ToggleButtonGroup>
+              )}
+            </div>
             <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onPress={() => downloadMarkdown(output.prd)}>
-                Download PRD
-              </Button>
+              {docs.map(d => (
+                <Button
+                  key={d.key}
+                  size="sm"
+                  variant="outline"
+                  onPress={() => downloadMarkdown(d.markdown)}
+                >
+                  Download {d.label}
+                </Button>
+              ))}
               <CopyButton
-                text={output.prd}
-                label="Use with Codex"
+                text={activeDoc?.markdown}
+                label={`Use ${activeDoc?.label || 'PRD'} with Codex`}
                 copiedLabel="Copied for Codex!"
                 variant="secondary"
               />
             </div>
           </div>
           <div className="markdown-body">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{output.prd}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{activeDoc?.markdown}</ReactMarkdown>
           </div>
         </Card.Content>
       </Card>
