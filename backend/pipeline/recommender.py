@@ -452,12 +452,22 @@ def _compute_confidence(scaffold: dict) -> dict:
     return {"score": score, "reason": reason}
 
 
-def get_recommendation(idea: str, constraints: dict = None, derived: dict | None = None) -> dict:
+def get_recommendation(
+    idea: str,
+    constraints: dict = None,
+    derived: dict | None = None,
+    feedback: str | None = None,
+) -> dict:
+    working_idea = idea or ""
+    feedback = (feedback or "").strip()
+    if feedback:
+        working_idea = f"{working_idea}\n\nUser feedback:\n{feedback}"
+
     constraints_block = _format_constraints(constraints or {}, derived=derived)
-    scaffold = _build_decision_scaffold(idea, constraints or {})
-    user_content = f"Idea: {idea}"
+    scaffold = _build_decision_scaffold(working_idea, constraints or {})
+    user_content = f"Idea: {working_idea}"
     if constraints_block:
-        user_content = f"{constraints_block}\n\nIdea: {idea}"
+        user_content = f"{constraints_block}\n\nIdea: {working_idea}"
     scaffold_block = (
         "Decision scaffold (use this to make deterministic, constraint-driven choices):\n"
         f"- Allowed scope: {', '.join(scaffold['allowed']['scope'])}\n"
