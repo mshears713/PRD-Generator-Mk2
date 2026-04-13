@@ -15,11 +15,20 @@ const GENERATE_STAGES = [
 ]
 const API_BASE = import.meta.env.VITE_API_BASE_URL || window.location.origin
 
+const FALLBACK_RECOMMENDATION = {
+  summary: 'No recommendation data yet. Choose your stack below and generate when ready.',
+  selections: { scope: 'fullstack', backend: 'fastapi', frontend: 'react', apis: [], database: 'postgres', api_keys: {} },
+  deployment: 'self',
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('current')
   const [stage, setStage] = useState('recommendation')
   const [idea, setIdea] = useState('')
   const [summary, setSummary] = useState('')
+  const [stage, setStage] = useState('recommendation')
+  const [idea, setIdea] = useState('')
+  const [summary, setSummary] = useState(FALLBACK_RECOMMENDATION.summary)
   const [systemType, setSystemType] = useState('')
   const [keyRequirements, setKeyRequirements] = useState([])
   const [rationale, setRationale] = useState(null)
@@ -219,7 +228,7 @@ export default function App() {
   function handleReset() {
     setStage('recommendation')
     setIdea('')
-    setSummary('')
+    setSummary(FALLBACK_RECOMMENDATION.summary)
     setSystemType('')
     setKeyRequirements([])
     setRationale(null)
