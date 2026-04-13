@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from dataclasses import dataclass
 from typing import Any
 
@@ -99,7 +100,7 @@ class GitHubClient:
         created_files = []
         
         for path in sorted(files.keys()):
-            content = files[path]
+            content = files[path] or ""
             
             # For README.md, fetch existing SHA (auto_init creates default README)
             # For other files, we can create them without a SHA
@@ -116,10 +117,13 @@ class GitHubClient:
                     if e.status_code != 404:
                         raise
             
+            # Base64 encode content for GitHub Contents API
+            encoded_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
+            
             # Upload file using Contents API
             body: dict[str, Any] = {
                 "message": commit_message,
-                "content": content,
+                "content": encoded_content,
             }
             if sha:
                 body["sha"] = sha
