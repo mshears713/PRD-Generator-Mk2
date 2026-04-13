@@ -1,4 +1,5 @@
-import { Button, Card } from '@heroui/react'
+import { useState } from 'react'
+import { Button, Card, TextArea } from '@heroui/react'
 import SelectionCards from './SelectionCards'
 import DeploymentRow from './DeploymentRow'
 
@@ -37,11 +38,32 @@ export default function RecommendationPanel({
   coreSystemLogic, scopeBoundaries, phasedPlan,
   selections, onChange, architectureData, apiCandidates,
   deployment, onDeploymentChange, deploymentOptions,
-  onGenerate,
+  onGenerate, sessionId, onIterate, iterating, iterateError,
 }) {
+const [feedbackOpen, setFeedbackOpen] = useState(false)
+const [feedbackText, setFeedbackText] = useState('')
+
+const overviewText =
+  summary || 'No recommendation data yet. You can still choose a stack and continue.'
+
+const canGenerate = Boolean(
+  selections.scope &&
+  selections.backend &&
+  selections.frontend &&
+  selections.database
+)
+  const overviewText = summary || 'No recommendation data yet. You can still choose a stack and continue.'
   const canGenerate = Boolean(
     selections.scope && selections.backend && selections.frontend && selections.database
   )
+
+  async function submitFeedback() {
+    const ok = await onIterate(feedbackText)
+    if (ok) {
+      setFeedbackText('')
+      setFeedbackOpen(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -55,7 +77,7 @@ export default function RecommendationPanel({
               <p className="text-sm font-semibold text-foreground text-right">{systemType}</p>
             )}
           </div>
-          <p className="text-foreground leading-relaxed">{summary}</p>
+          <p className="text-foreground leading-relaxed">{overviewText}</p>
         </Card.Content>
       </Card>
 
@@ -146,6 +168,40 @@ export default function RecommendationPanel({
         <h2 className="text-base font-semibold mb-4">Deployment</h2>
         <DeploymentRow value={deployment} onChange={onDeploymentChange} deploymentOptions={deploymentOptions} />
       </div>
+
+      {/* 6. Feedback iteration */}
+      <Card>
+        <Card.Content className="p-5">
+          <button
+            type="button"
+            className="w-full text-left text-xs font-bold uppercase tracking-widest text-accent"
+            onClick={() => setFeedbackOpen(v => !v)}
+          >
+            Refine Recommendation {feedbackOpen ? '▲' : '▼'}
+          </button>
+          {feedbackOpen && (
+            <div className="mt-3 flex flex-col gap-3">
+              <TextArea
+                aria-label="Recommendation feedback"
+                placeholder="e.g. remove database and simplify architecture"
+                value={feedbackText}
+                rows={4}
+                onChange={e => setFeedbackText(e.target.value)}
+              />
+              {iterating && <p className="text-sm text-muted">Updating recommendation...</p>}
+              {iterateError && <p className="text-sm text-danger">{iterateError}</p>}
+              {!sessionId && <p className="text-sm text-muted">Load a saved project first to iterate.</p>}
+              <Button
+                variant="secondary"
+                onPress={submitFeedback}
+                isDisabled={!sessionId || !feedbackText.trim() || iterating}
+              >
+                Submit Feedback
+              </Button>
+            </div>
+          )}
+        </Card.Content>
+      </Card>
 
       <Button
         variant="primary"
