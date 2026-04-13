@@ -61,7 +61,7 @@ function QuestionBlock({ question, value, onChange }) {
   )
 }
 
-export default function QuickSetupPanel({ idea, onContinue }) {
+export default function QuickSetupPanel({ idea, onContinue, apiBase = window.location.origin }) {
   const [fixedAnswers, setFixedAnswers] = useState(DEFAULT_FIXED_ANSWERS)
   const [dynamicQuestions, setDynamicQuestions] = useState([])
   const [dynamicAnswers, setDynamicAnswers] = useState({})
@@ -82,7 +82,7 @@ export default function QuickSetupPanel({ idea, onContinue }) {
     setDynamicLoading(true)
     setDynamicError('')
     try {
-      const res = await fetch('/quick-setup/questions', {
+      const res = await fetch(`${apiBase}/quick-setup/questions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idea }),

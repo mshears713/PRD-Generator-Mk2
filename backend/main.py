@@ -1,4 +1,8 @@
 import os
+import json
+from pathlib import Path
+from uuid import uuid4
+from datetime import datetime, timezone
 from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +25,7 @@ from pipeline.answer_mapper import map_answers_to_constraints
 load_dotenv()
 
 app = FastAPI()
+SESSIONS_FILE = Path(__file__).resolve().parent / "sessions.json"
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,6 +43,10 @@ class RecommendRequest(BaseModel):
 
 class QuickSetupQuestionsRequest(BaseModel):
     idea: str
+
+
+class IterateSessionRequest(BaseModel):
+    feedback: str
 
 
 class GenerateRequest(BaseModel):
@@ -162,6 +171,40 @@ class RecommendResponse(BaseModel):
     deployment: Optional[list[DeploymentOption]] = None
 
 
+def load_sessions() -> list[dict]:
+    if not SESSIONS_FILE.exists():
+        SESSIONS_FILE.write_text("[]", encoding="utf-8")
+        return []
+    try:
+        data = json.loads(SESSIONS_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, list) else []
+    except json.JSONDecodeError:
+        return []
+
+
+def save_sessions(sessions: list[dict]) -> None:
+    SESSIONS_FILE.write_text(json.dumps(sessions, indent=2), encoding="utf-8")
+
+
+def get_latest_session() -> Optional[dict]:
+    sessions = load_sessions()
+    return sessions[-1] if sessions else None
+
+
+def create_session(session_obj: dict) -> dict:
+    sessions = load_sessions()
+    sessions.append(session_obj)
+    save_sessions(sessions)
+    return session_obj
+
+
+def find_session_index(sessions: list[dict], session_id: str) -> int:
+    for i, session in enumerate(sessions):
+        if session.get("id") == session_id:
+            return i
+    return -1
+
+
 @app.post("/recommend", response_model=RecommendResponse)
 def recommend(req: RecommendRequest):
     if not USE_FAKE_LLM and not os.getenv("OPENAI_API_KEY"):
@@ -182,6 +225,13 @@ def recommend(req: RecommendRequest):
         option_advice = get_all_option_advice(req.idea, constraints, result.get("recommended", {}), derived=derived)
         result["architecture"] = option_advice
         result["deployment"] = advice.get("deployment")
+        create_session({
+            "id": str(uuid4()),
+            "idea": req.idea,
+            "constraints": constraints,
+            "recommendation": result,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
         return result
     except ValueError as e:
         raise HTTPException(status_code=502, detail=f"LLM response error: {e}")
@@ -190,6 +240,72 @@ def recommend(req: RecommendRequest):
 @app.post("/quick-setup/questions")
 def quick_setup_questions(req: QuickSetupQuestionsRequest):
     return {"questions": generate_dynamic_questions(req.idea)}
+
+
+@app.get("/sessions/latest")
+def latest_session():
+    session = get_latest_session()
+    if not session:
+        return {"session": None}
+    return {"session": session}
+
+
+@app.get("/sessions")
+def list_sessions():
+    sessions = load_sessions()
+    summaries = []
+    for session in sessions:
+        summaries.append(
+            {
+                "id": session.get("id"),
+                "idea": session.get("idea"),
+                "created_at": session.get("created_at"),
+                "updated_at": session.get("updated_at"),
+            }
+        )
+    summaries.sort(key=lambda s: s.get("updated_at") or s.get("created_at") or "", reverse=True)
+    return {"sessions": summaries}
+
+
+@app.get("/sessions/{session_id}")
+def get_session(session_id: str):
+    sessions = load_sessions()
+    idx = find_session_index(sessions, session_id)
+    if idx < 0:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"session": sessions[idx]}
+
+
+@app.post("/sessions/{session_id}/iterate", response_model=RecommendResponse)
+def iterate_session(session_id: str, req: IterateSessionRequest):
+    if not USE_FAKE_LLM and not os.getenv("OPENAI_API_KEY"):
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+
+    sessions = load_sessions()
+    idx = find_session_index(sessions, session_id)
+    if idx < 0:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    session = sessions[idx]
+    idea = session.get("idea") or ""
+    constraints = session.get("constraints") or {}
+    feedback = (req.feedback or "").strip()
+    context_idea = idea if not feedback else f"{idea}\n\nUser feedback:\n{feedback}"
+
+    try:
+        result = get_recommendation(idea, constraints, derived={}, feedback=feedback)
+        advice = get_context_advice(context_idea, constraints, result.get("recommended", {}), derived={})
+        option_advice = get_all_option_advice(context_idea, constraints, result.get("recommended", {}), derived={})
+        result["architecture"] = option_advice
+        result["deployment"] = advice.get("deployment")
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=f"LLM response error: {e}")
+
+    sessions[idx]["recommendation"] = result
+    sessions[idx]["last_feedback"] = feedback
+    sessions[idx]["updated_at"] = datetime.now(timezone.utc).isoformat()
+    save_sessions(sessions)
+    return result
 
 
 @app.post("/generate", response_model=GenerateResponse)
