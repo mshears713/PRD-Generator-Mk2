@@ -13,6 +13,7 @@ const GENERATE_STAGES = [
   'Generating PRDs...',
   'Running System Review...',
 ]
+const API_BASE = import.meta.env.VITE_API_BASE_URL || window.location.origin
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('current')
@@ -72,7 +73,7 @@ export default function App() {
       setError('')
       setLoadingLatest(true)
       try {
-        const res = await fetch('/sessions/latest')
+        const res = await fetch(`${API_BASE}/sessions/latest`)
         if (!res.ok) throw new Error('Failed to load latest session')
         const data = await res.json()
         const session = data.session
@@ -96,7 +97,7 @@ export default function App() {
       setLoadingSessions(true)
       setSessionsError('')
       try {
-        const res = await fetch('/sessions')
+        const res = await fetch(`${API_BASE}/sessions`)
         if (!res.ok) throw new Error('Failed to load sessions')
         const data = await res.json()
         setSessionsList(data.sessions || [])
@@ -113,7 +114,7 @@ export default function App() {
     setStage('recommending')
     setError('')
     try {
-      const res = await fetch('/recommend', {
+      const res = await fetch(`${API_BASE}/recommend`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idea, answers }),
@@ -122,7 +123,7 @@ export default function App() {
       const data = await res.json()
       applyRecommendationData(data)
       try {
-        const latestRes = await fetch('/sessions/latest')
+        const latestRes = await fetch(`${API_BASE}/sessions/latest`)
         if (latestRes.ok) {
           const latestData = await latestRes.json()
           setSessionId(latestData?.session?.id || '')
@@ -149,7 +150,7 @@ export default function App() {
     setIterateError('')
     setIterating(true)
     try {
-      const res = await fetch(`/sessions/${sessionId}/iterate`, {
+      const res = await fetch(`${API_BASE}/sessions/${sessionId}/iterate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ feedback: cleanFeedback }),
@@ -169,7 +170,7 @@ export default function App() {
   async function handleLoadSession(sessionToLoadId) {
     setError('')
     try {
-      const res = await fetch(`/sessions/${sessionToLoadId}`)
+      const res = await fetch(`${API_BASE}/sessions/${sessionToLoadId}`)
       if (!res.ok) throw new Error((await res.json()).detail || 'Failed to load session')
       const data = await res.json()
       const session = data.session
@@ -200,7 +201,7 @@ export default function App() {
     setStage('generating')
     setError('')
     try {
-      const res = await fetch('/generate', {
+      const res = await fetch(`${API_BASE}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idea, ...selections }),
@@ -295,7 +296,7 @@ export default function App() {
         <IdeaInput idea={idea} onChange={setIdea} onSubmit={() => setStage('quicksetup')} />
       )}
       {activeTab === 'current' && !loadingLatest && stage === 'quicksetup' && (
-        <QuickSetupPanel idea={idea} onContinue={handleQuickSetupContinue} />
+        <QuickSetupPanel idea={idea} onContinue={handleQuickSetupContinue} apiBase={API_BASE} />
       )}
       {activeTab === 'current' && !loadingLatest && stage === 'recommending' && (
         <LoadingState message="Analyzing your idea..." />
