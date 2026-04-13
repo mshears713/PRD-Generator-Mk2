@@ -39,6 +39,7 @@ export default function RecommendationPanel({
   deployment, onDeploymentChange, deploymentOptions,
   onGenerate,
 }) {
+  const overviewText = summary || 'No recommendation data yet. You can still choose a stack and continue.'
   const canGenerate = Boolean(
     selections.scope && selections.backend && selections.frontend && selections.database
   )
@@ -55,7 +56,7 @@ export default function RecommendationPanel({
               <p className="text-sm font-semibold text-foreground text-right">{systemType}</p>
             )}
           </div>
-          <p className="text-foreground leading-relaxed">{summary}</p>
+          <p className="text-foreground leading-relaxed">{overviewText}</p>
         </Card.Content>
       </Card>
 

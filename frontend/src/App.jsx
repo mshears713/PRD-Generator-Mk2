@@ -14,10 +14,16 @@ const GENERATE_STAGES = [
   'Running System Review...',
 ]
 
+const FALLBACK_RECOMMENDATION = {
+  summary: 'No recommendation data yet. Choose your stack below and generate when ready.',
+  selections: { scope: 'fullstack', backend: 'fastapi', frontend: 'react', apis: [], database: 'postgres', api_keys: {} },
+  deployment: 'self',
+}
+
 export default function App() {
-  const [stage, setStage] = useState('idea')
+  const [stage, setStage] = useState('recommendation')
   const [idea, setIdea] = useState('')
-  const [summary, setSummary] = useState('')
+  const [summary, setSummary] = useState(FALLBACK_RECOMMENDATION.summary)
   const [systemType, setSystemType] = useState('')
   const [keyRequirements, setKeyRequirements] = useState([])
   const [rationale, setRationale] = useState(null)
@@ -27,10 +33,8 @@ export default function App() {
   const [architectureData, setArchitectureData] = useState(null)
   const [apiCandidates, setApiCandidates] = useState(null)
   const [deploymentOptions, setDeploymentOptions] = useState([])
-  const [selections, setSelections] = useState({
-    scope: '', backend: '', frontend: '', apis: [], database: '', api_keys: {},
-  })
-  const [deployment, setDeployment] = useState('self')
+  const [selections, setSelections] = useState(FALLBACK_RECOMMENDATION.selections)
+  const [deployment, setDeployment] = useState(FALLBACK_RECOMMENDATION.deployment)
   const [output, setOutput] = useState(null)
   const [error, setError] = useState('')
 
@@ -90,9 +94,9 @@ export default function App() {
   }
 
   function handleReset() {
-    setStage('idea')
+    setStage('recommendation')
     setIdea('')
-    setSummary('')
+    setSummary(FALLBACK_RECOMMENDATION.summary)
     setSystemType('')
     setKeyRequirements([])
     setRationale(null)
@@ -102,8 +106,8 @@ export default function App() {
     setArchitectureData(null)
     setApiCandidates(null)
     setDeploymentOptions([])
-    setSelections({ scope: '', backend: '', frontend: '', apis: [], database: '', api_keys: {} })
-    setDeployment('self')
+    setSelections(FALLBACK_RECOMMENDATION.selections)
+    setDeployment(FALLBACK_RECOMMENDATION.deployment)
     setOutput(null)
     setError('')
   }
