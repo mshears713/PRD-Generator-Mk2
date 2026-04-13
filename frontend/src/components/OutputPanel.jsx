@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Button, Card, Disclosure, ToggleButton, ToggleButtonGroup } from '@heroui/react'
+import { Alert, Button, Card, Disclosure, Input, Link, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -62,7 +62,7 @@ function GrowthCheckCards({ data }) {
   )
 }
 
-export default function OutputPanel({ output, onReset }) {
+export default function OutputPanel({ output, idea, onReset }) {
   const docs = useMemo(() => {
     const main = output?.main_prd || output?.prd || ''
     const items = [
@@ -74,12 +74,46 @@ export default function OutputPanel({ output, onReset }) {
   }, [output])
 
   const [activeDocKey, setActiveDocKey] = useState('main')
+  const [repoName, setRepoName] = useState('')
+  const [isPrivate, setIsPrivate] = useState(true)
+  const [creatingRepo, setCreatingRepo] = useState(false)
+  const [createRepoError, setCreateRepoError] = useState('')
+  const [createRepoResult, setCreateRepoResult] = useState(null)
 
   useEffect(() => {
     if (!docs.some(d => d.key === activeDocKey)) setActiveDocKey('main')
   }, [docs, activeDocKey])
 
   const activeDoc = docs.find(d => d.key === activeDocKey) || docs[0]
+
+  async function handleCreateRepo() {
+    setCreateRepoError('')
+    setCreateRepoResult(null)
+    setCreatingRepo(true)
+    try {
+      const payload = {
+        idea: idea || null,
+        main_prd: output?.main_prd || output?.prd || '',
+        backend_prd: output?.backend_prd || null,
+        frontend_prd: output?.frontend_prd || null,
+        env: output?.env || null,
+        repo_name: repoName.trim() ? repoName.trim() : null,
+        private: isPrivate,
+      }
+      const res = await fetch('/create-repo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.detail || 'Failed to create repo')
+      setCreateRepoResult(data)
+    } catch (e) {
+      setCreateRepoError(e.message)
+    } finally {
+      setCreatingRepo(false)
+    }
+  }
 
   function inferFilename(markdown) {
     const firstLine = String(markdown || '').split('\n')[0] || ''
@@ -166,6 +200,80 @@ export default function OutputPanel({ output, onReset }) {
           <pre className="bg-background border border-border rounded-lg p-4 font-mono text-sm whitespace-pre-wrap overflow-x-auto text-foreground">
             {output.env}
           </pre>
+        </Card.Content>
+      </Card>
+
+      <Card>
+        <Card.Content className="p-6">
+          <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+            <h2 className="text-base font-semibold">GitHub Repo</h2>
+          </div>
+
+          {createRepoError && (
+            <div className="mb-4">
+              <Alert status="danger">
+                <Alert.Indicator />
+                <Alert.Content>
+                  <Alert.Description>{createRepoError}</Alert.Description>
+                </Alert.Content>
+              </Alert>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col md:flex-row gap-3 items-start md:items-end">
+              <Input
+                label="Repo name (optional)"
+                placeholder="e.g. ai-journaling-assistant"
+                value={repoName}
+                onChange={e => setRepoName(e.target.value)}
+                disabled={creatingRepo}
+                className="w-full"
+              />
+              <ToggleButtonGroup
+                selectionMode="single"
+                selectedKeys={new Set([isPrivate ? 'private' : 'public'])}
+                onSelectionChange={keys => {
+                  if (creatingRepo) return
+                  const v = [...keys][0]
+                  if (v === 'public') setIsPrivate(false)
+                  if (v === 'private') setIsPrivate(true)
+                }}
+                size="sm"
+                className={creatingRepo ? 'pointer-events-none opacity-60' : ''}
+              >
+                <ToggleButton id="private">Private</ToggleButton>
+                <ToggleButtonGroup.Separator />
+                <ToggleButton id="public">Public</ToggleButton>
+              </ToggleButtonGroup>
+            </div>
+
+            <Button variant="primary" onPress={handleCreateRepo} isLoading={creatingRepo}>
+              Create GitHub Repo
+            </Button>
+
+            {createRepoResult?.repo_url && (
+              <div className="mt-2 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm text-muted">Repo:</span>
+                    <Link href={createRepoResult.repo_url} target="_blank" rel="noreferrer">
+                      {createRepoResult.repo_url}
+                    </Link>
+                  </div>
+                  <CopyButton
+                    text={createRepoResult.kickoff_prompt || ''}
+                    label="Copy kickoff prompt"
+                    copiedLabel="Copied!"
+                    variant="secondary"
+                  />
+                </div>
+                <pre className="bg-background border border-border rounded-lg p-4 font-mono text-sm whitespace-pre-wrap overflow-x-auto text-foreground">
+                  {createRepoResult.kickoff_prompt}
+                </pre>
+              </div>
+            )}
+          </div>
         </Card.Content>
       </Card>
 
