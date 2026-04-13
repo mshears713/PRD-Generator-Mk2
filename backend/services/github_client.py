@@ -81,12 +81,11 @@ class GitHubClient:
         files: dict[str, str],
         commit_message: str,
     ) -> dict[str, Any]:
-        created_files = sorted(files.keys())
-
+        # Step 1: Create repository with auto_init=true to get initial branch + README
         repo = self._request(
             "POST",
             "/user/repos",
-            json={"name": name, "private": private, "auto_init": False},
+            json={"name": name, "private": private, "auto_init": True},
         )
         owner = (repo.get("owner") or {}).get("login")
         repo_name = repo.get("name") or name
@@ -95,45 +94,42 @@ class GitHubClient:
         if not owner or not repo_url:
             raise GitHubError(status_code=502, message="Unexpected GitHub response creating repository")
 
-        blobs: dict[str, str] = {}
-        for path, content in files.items():
-            blob = self._request(
-                "POST",
-                f"/repos/{owner}/{repo_name}/git/blobs",
-                json={"content": content, "encoding": "utf-8"},
+        # Step 2: Upload files using Contents API
+        # This API naturally creates commits and is much simpler than low-level git operations
+        created_files = []
+        
+        for path in sorted(files.keys()):
+            content = files[path]
+            
+            # For README.md, fetch existing SHA (auto_init creates default README)
+            # For other files, we can create them without a SHA
+            sha: str | None = None
+            if path == "README.md":
+                try:
+                    existing = self._request(
+                        "GET",
+                        f"/repos/{owner}/{repo_name}/contents/{path}",
+                    )
+                    sha = existing.get("sha")
+                except GitHubError as e:
+                    # If README doesn't exist (unlikely with auto_init), proceed without SHA
+                    if e.status_code != 404:
+                        raise
+            
+            # Upload file using Contents API
+            body: dict[str, Any] = {
+                "message": commit_message,
+                "content": content,
+            }
+            if sha:
+                body["sha"] = sha
+            
+            self._request(
+                "PUT",
+                f"/repos/{owner}/{repo_name}/contents/{path}",
+                json=body,
             )
-            sha = blob.get("sha")
-            if not sha:
-                raise GitHubError(status_code=502, message=f"Unexpected GitHub response creating blob for {path}")
-            blobs[path] = sha
-
-        tree_items = []
-        for path, sha in blobs.items():
-            tree_items.append({"path": path, "mode": "100644", "type": "blob", "sha": sha})
-
-        tree = self._request(
-            "POST",
-            f"/repos/{owner}/{repo_name}/git/trees",
-            json={"tree": tree_items},
-        )
-        tree_sha = tree.get("sha")
-        if not tree_sha:
-            raise GitHubError(status_code=502, message="Unexpected GitHub response creating tree")
-
-        commit = self._request(
-            "POST",
-            f"/repos/{owner}/{repo_name}/git/commits",
-            json={"message": commit_message, "tree": tree_sha, "parents": []},
-        )
-        commit_sha = commit.get("sha")
-        if not commit_sha:
-            raise GitHubError(status_code=502, message="Unexpected GitHub response creating commit")
-
-        self._request(
-            "POST",
-            f"/repos/{owner}/{repo_name}/git/refs",
-            json={"ref": f"refs/heads/{default_branch}", "sha": commit_sha},
-        )
+            created_files.append(path)
 
         return {
             "repo_name": repo_name,

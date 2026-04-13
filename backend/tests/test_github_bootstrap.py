@@ -143,7 +143,8 @@ def test_create_repo_retries_on_name_conflict(monkeypatch):
     assert calls["names"][1].startswith("my-project-")
 
 
-def test_github_client_single_commit_flow_builds_expected_requests():
+def test_github_client_simplified_contents_api_flow():
+    """Test that repo creation uses auto_init=true and Contents API."""
     class DummyResp:
         def __init__(self, status_code, payload):
             self.status_code = status_code
@@ -155,12 +156,16 @@ def test_github_client_single_commit_flow_builds_expected_requests():
     class DummyHTTP:
         def __init__(self):
             self.calls = []
-            self._i = 0
+            self._request_count = 0
 
         def request(self, method, url, headers=None, json=None):
             self.calls.append((method, url, json))
-            self._i += 1
-            if self._i == 1:
+            self._request_count += 1
+
+            # Step 1: Initial repo creation with auto_init=true
+            if method == "POST" and url.endswith("/user/repos"):
+                # Verify auto_init=true was passed
+                assert json.get("auto_init") is True, "Should create repo with auto_init=true"
                 return DummyResp(
                     201,
                     {
@@ -170,28 +175,153 @@ def test_github_client_single_commit_flow_builds_expected_requests():
                         "owner": {"login": "me"},
                     },
                 )
-            if "/git/blobs" in url:
-                return DummyResp(201, {"sha": f"blob{self._i}"})
-            if "/git/trees" in url:
-                return DummyResp(201, {"sha": "treesha"})
-            if "/git/commits" in url:
-                return DummyResp(201, {"sha": "commitsha"})
-            if "/git/refs" in url:
-                return DummyResp(201, {"ref": "refs/heads/main"})
-            return DummyResp(500, {"message": "unexpected"})
+
+            # Step 2: GET request to check existing README (auto-created)
+            if method == "GET" and "/contents/README.md" in url:
+                return DummyResp(200, {"sha": "existing-readme-sha", "name": "README.md"})
+
+            # Step 3: PUT requests for file uploads using Contents API
+            if method == "PUT" and "/contents/" in url:
+                # Verify message and content are present
+                assert json.get("message") == "Initial project scaffold from StackLens"
+                assert "content" in json
+                return DummyResp(201, {"commit": {"sha": f"commit{self._request_count}"}})
+
+            return DummyResp(500, {"message": "unexpected request"})
 
     http = DummyHTTP()
     gh = GitHubClient(token="t", http=http, base_url="https://api.github.com")
     out = gh.create_repo_with_initial_commit(
         name="demo",
         private=True,
-        files={"README.md": "hi", "backend_prd.md": "b"},
+        files={"README.md": "new readme", "backend_prd.md": "backend content"},
         commit_message="Initial project scaffold from StackLens",
     )
+
     assert out["repo_url"] == "https://github.com/me/demo"
+    assert out["repo_name"] == "demo"
+    assert out["created_files"] == ["README.md", "backend_prd.md"]
+
+    # Verify API call sequence
     assert len([c for c in http.calls if c[0] == "POST" and c[1].endswith("/user/repos")]) == 1
-    assert len([c for c in http.calls if "/git/blobs" in c[1]]) == 2
-    assert any("/git/trees" in c[1] for c in http.calls)
-    assert any("/git/commits" in c[1] for c in http.calls)
-    assert any("/git/refs" in c[1] for c in http.calls)
+    assert len([c for c in http.calls if c[0] == "GET" and "README.md" in c[1]]) == 1
+    assert len([c for c in http.calls if c[0] == "PUT" and "/contents/" in c[1]]) == 2
+
+    # Verify no low-level git operations (blobs, trees, commits, refs)
+    assert not any("/git/blobs" in c[1] for c in http.calls)
+    assert not any("/git/trees" in c[1] for c in http.calls)
+    assert not any("/git/commits" in c[1] for c in http.calls)
+    assert not any("/git/refs" in c[1] for c in http.calls)
+
+
+def test_github_client_handles_multiple_files_with_frontend_prd():
+    """Test file upload with all scaffold files including frontend_prd."""
+    class DummyResp:
+        def __init__(self, status_code, payload):
+            self.status_code = status_code
+            self._payload = payload
+
+        def json(self):
+            return self._payload
+
+    class DummyHTTP:
+        def __init__(self):
+            self.calls = []
+
+        def request(self, method, url, headers=None, json=None):
+            self.calls.append((method, url, json))
+
+            if method == "POST" and url.endswith("/user/repos"):
+                return DummyResp(
+                    201,
+                    {
+                        "name": "fullstack-app",
+                        "html_url": "https://github.com/me/fullstack-app",
+                        "default_branch": "main",
+                        "owner": {"login": "me"},
+                    },
+                )
+
+            if method == "GET" and "/contents/README.md" in url:
+                return DummyResp(200, {"sha": "sha123"})
+
+            if method == "PUT" and "/contents/" in url:
+                return DummyResp(201, {"commit": {"sha": "newcommitsha"}})
+
+            return DummyResp(500, {"message": "unexpected"})
+
+    http = DummyHTTP()
+    gh = GitHubClient(token="t", http=http, base_url="https://api.github.com")
+    out = gh.create_repo_with_initial_commit(
+        name="fullstack-app",
+        private=False,
+        files={
+            "README.md": "# App",
+            "backend_prd.md": "backend",
+            "frontend_prd.md": "frontend",
+            ".env.example": "API_KEY=",
+            ".gitignore": "*.pyc",
+            "backend/main.py": "from fastapi import FastAPI",
+            "backend/requirements.txt": "fastapi>=0.80.0",
+        },
+        commit_message="Initial project scaffold from StackLens",
+    )
+
+    # Should upload all 7 files
+    assert len(out["created_files"]) == 7
+    assert "frontend_prd.md" in out["created_files"]
+    put_calls = [c for c in http.calls if c[0] == "PUT"]
+    assert len(put_calls) == 7
+
+
+def test_github_client_readme_sha_missing_on_404():
+    """Test that README creation works even if GET returns 404 (shouldn't happen with auto_init)."""
+    class DummyResp:
+        def __init__(self, status_code, payload):
+            self.status_code = status_code
+            self._payload = payload
+
+        def json(self):
+            return self._payload
+
+    class DummyHTTP:
+        def __init__(self):
+            self.calls = []
+
+        def request(self, method, url, headers=None, json=None):
+            self.calls.append((method, url, json))
+
+            if method == "POST" and url.endswith("/user/repos"):
+                return DummyResp(
+                    201,
+                    {
+                        "name": "test",
+                        "html_url": "https://github.com/me/test",
+                        "default_branch": "main",
+                        "owner": {"login": "me"},
+                    },
+                )
+
+            if method == "GET" and "/contents/README.md" in url:
+                # Simulate 404 - README doesn't exist (edge case)
+                raise GitHubError(status_code=404, message="Not Found")
+
+            if method == "PUT" and "/contents/" in url:
+                return DummyResp(201, {"commit": {"sha": "commitsha"}})
+
+            return DummyResp(500, {"message": "unexpected"})
+
+    http = DummyHTTP()
+    gh = GitHubClient(token="t", http=http, base_url="https://api.github.com")
+    out = gh.create_repo_with_initial_commit(
+        name="test",
+        private=True,
+        files={"README.md": "content"},
+        commit_message="msg",
+    )
+
+    assert out["created_files"] == ["README.md"]
+    # Should still create the file (PUT without sha for 404 case)
+    put_calls = [c for c in http.calls if c[0] == "PUT"]
+    assert len(put_calls) == 1
 
