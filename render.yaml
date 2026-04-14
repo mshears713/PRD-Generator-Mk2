@@ -23,11 +23,11 @@ services:
     rootDir: frontend
 
     buildCommand: npm install && npm run build
-    startCommand: npm run preview
+    startCommand: npx serve dist
 
     envVars:
-      - key: VITE_API_URL
+      - key: VITE_API_HOST
         fromService:
           name: prd-generator-backend
           type: web
-          property: url
+          property: host
