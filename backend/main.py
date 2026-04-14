@@ -197,13 +197,32 @@ class RecommendResponse(BaseModel):
     deployment: Optional[list[DeploymentOption]] = None
 
 
+def normalize_session_idea(session: dict) -> dict:
+    """Safely convert stringified idea JSON to proper object."""
+    if not session or "idea" not in session:
+        return session
+    idea = session["idea"]
+    # If idea is a string that looks like JSON, parse it
+    if isinstance(idea, str):
+        try:
+            # Try to parse as JSON
+            parsed = json.loads(idea)
+            session["idea"] = parsed
+        except (json.JSONDecodeError, ValueError):
+            # If it's not valid JSON, keep it as a plain string object
+            session["idea"] = {"text": idea} if idea else {}
+    return session
+
+
 def load_sessions() -> list[dict]:
     if not SESSIONS_FILE.exists():
         SESSIONS_FILE.write_text("[]", encoding="utf-8")
         return []
     try:
         data = json.loads(SESSIONS_FILE.read_text(encoding="utf-8"))
-        return data if isinstance(data, list) else []
+        sessions = data if isinstance(data, list) else []
+        # Normalize idea fields to ensure they're objects, not strings
+        return [normalize_session_idea(s) for s in sessions]
     except json.JSONDecodeError:
         return []
 
@@ -281,10 +300,17 @@ def list_sessions():
     sessions = load_sessions()
     summaries = []
     for session in sessions:
+        # Ensure idea is always an object
+        idea = session.get("idea") or {}
+        if isinstance(idea, str):
+            try:
+                idea = json.loads(idea)
+            except (json.JSONDecodeError, ValueError):
+                idea = {"text": idea}
         summaries.append(
             {
                 "id": session.get("id"),
-                "idea": session.get("idea"),
+                "idea": idea,
                 "created_at": session.get("created_at"),
                 "updated_at": session.get("updated_at"),
             }
@@ -299,7 +325,16 @@ def get_session(session_id: str):
     idx = find_session_index(sessions, session_id)
     if idx < 0:
         raise HTTPException(status_code=404, detail="Session not found")
-    return {"session": sessions[idx]}
+    session = sessions[idx]
+    # Ensure idea is always an object
+    if session and "idea" in session:
+        idea = session["idea"]
+        if isinstance(idea, str):
+            try:
+                session["idea"] = json.loads(idea)
+            except (json.JSONDecodeError, ValueError):
+                session["idea"] = {"text": idea}
+    return {"session": session}
 
 
 @app.post("/sessions/{session_id}/iterate", response_model=RecommendResponse)
