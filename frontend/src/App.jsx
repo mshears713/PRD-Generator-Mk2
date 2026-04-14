@@ -13,8 +13,7 @@ const GENERATE_STAGES = [
   'Generating PRDs...',
   'Running System Review...',
 ]
-const API_HOST = import.meta.env.VITE_API_HOST || window.location.hostname
-const API_BASE = `https://${API_HOST}`
+const API_BASE = import.meta.env.VITE_API_URL || window.location.origin
 console.log('API_BASE:', API_BASE)
 
 const FALLBACK_RECOMMENDATION = {

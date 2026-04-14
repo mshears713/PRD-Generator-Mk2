@@ -26,8 +26,5 @@ services:
     startCommand: npx serve dist
 
     envVars:
-      - key: VITE_API_HOST
-        fromService:
-          name: prd-generator-backend
-          type: web
-          property: host
+      - key: VITE_API_URL
+        value: https://prd-generator-backend.onrender.com
