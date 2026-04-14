@@ -1,5 +1,4 @@
 services:
-  # Backend
   - type: web
     name: prd-generator-backend
     runtime: python
@@ -17,14 +16,14 @@ services:
       - key: GITHUB_PAT
         sync: false
 
-  # Frontend (STATIC)
-  - type: static
+  - type: web
     name: prd-generator-frontend
+    runtime: node
     plan: starter
     rootDir: frontend
 
     buildCommand: npm install && npm run build
-    publishDir: dist
+    startCommand: npm run preview
 
     envVars:
       - key: VITE_API_URL
