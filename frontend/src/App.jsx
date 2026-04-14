@@ -13,7 +13,9 @@ const GENERATE_STAGES = [
   'Generating PRDs...',
   'Running System Review...',
 ]
-const API_BASE = import.meta.env.VITE_API_BASE_URL || window.location.origin
+const API_HOST = import.meta.env.VITE_API_HOST || window.location.hostname
+const API_BASE = `https://${API_HOST}`
+console.log('API_BASE:', API_BASE)
 
 const FALLBACK_RECOMMENDATION = {
   summary: 'No recommendation data yet. Choose your stack below and generate when ready.',
@@ -334,7 +336,7 @@ export default function App() {
         <LoadingState stages={GENERATE_STAGES} cycleInterval={6000} />
       )}
       {activeTab === 'current' && stage === 'output' && (
-        <OutputPanel output={output} idea={idea} onReset={handleReset} />
+        <OutputPanel output={output} idea={idea} onReset={handleReset} apiBase={API_BASE} />
       )}
 
       {activeTab === 'previous' && (

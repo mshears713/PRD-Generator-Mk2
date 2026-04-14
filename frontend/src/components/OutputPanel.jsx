@@ -62,7 +62,7 @@ function GrowthCheckCards({ data }) {
   )
 }
 
-export default function OutputPanel({ output, idea, onReset }) {
+export default function OutputPanel({ output, idea, onReset, apiBase = window.location.origin }) {
   const docs = useMemo(() => {
     const main = output?.main_prd || output?.prd || ''
     const items = [
@@ -100,7 +100,7 @@ export default function OutputPanel({ output, idea, onReset }) {
         repo_name: repoName.trim() ? repoName.trim() : null,
         private: isPrivate,
       }
-      const res = await fetch('/create-repo', {
+      const res = await fetch(`${apiBase}/create-repo`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
