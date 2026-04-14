@@ -23,7 +23,7 @@ export default function IdeaInput({ idea, onChange, onSubmit }) {
             variant="primary"
             className="w-full"
             onPress={onSubmit}
-            isDisabled={!idea.trim()}
+            isDisabled={!(typeof idea === 'string' ? idea : JSON.stringify(idea)).trim()}
           >
             Understand My Idea →
           </Button>

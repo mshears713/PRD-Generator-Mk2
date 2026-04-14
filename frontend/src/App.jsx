@@ -22,6 +22,11 @@ const FALLBACK_RECOMMENDATION = {
   deployment: 'self',
 }
 
+function ensureIdeaString(idea) {
+  if (idea == null) return ''
+  return typeof idea === 'string' ? idea : JSON.stringify(idea)
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('current')
   const [stage, setStage] = useState('recommendation')
@@ -86,7 +91,7 @@ export default function App() {
         const session = data.session
         if (session?.recommendation) {
           setSessionId(session.id || '')
-          setIdea(session.idea || '')
+          setIdea(ensureIdeaString(session.idea))
           applyRecommendationData(session.recommendation)
         }
       } catch (e) {
@@ -182,7 +187,7 @@ export default function App() {
       const data = await res.json()
       const session = data.session
       setSessionId(session.id || '')
-      setIdea(session.idea || '')
+      setIdea(ensureIdeaString(session.idea))
       applyRecommendationData(session.recommendation || {})
       setActiveTab('current')
     } catch (e) {
@@ -197,8 +202,12 @@ export default function App() {
     return date.toLocaleString()
   }
 
-  function summarizeIdea(text) {
-    const clean = (text || '').trim()
+  function summarizeIdea(idea) {
+    let text = idea
+    if (typeof idea === 'object' && idea !== null) {
+      text = idea.concept_summary || idea.text || ''
+    }
+    const clean = (typeof text === 'string' ? text : '').trim()
     if (!clean) return 'Untitled project'
     if (clean.length <= 90) return clean
     return `${clean.slice(0, 90)}...`
@@ -209,7 +218,7 @@ export default function App() {
     setError('')
     try {
       const body = {
-        idea: String(idea),
+        idea: ensureIdeaString(idea),
         scope: selections.scope,
         backend: selections.backend,
         frontend: selections.frontend,
