@@ -16,3 +16,19 @@ services:
         sync: false
       - key: GITHUB_PAT
         sync: false
+
+  # Frontend (STATIC)
+  - type: static
+    name: prd-generator-frontend
+    plan: starter
+    rootDir: frontend
+
+    buildCommand: npm install && npm run build
+    publishDir: dist
+
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          name: prd-generator-backend
+          type: web
+          property: url
