@@ -26,9 +26,6 @@ export default function App() {
   const [stage, setStage] = useState('recommendation')
   const [idea, setIdea] = useState('')
   const [summary, setSummary] = useState('')
-  const [stage, setStage] = useState('recommendation')
-  const [idea, setIdea] = useState('')
-  const [summary, setSummary] = useState(FALLBACK_RECOMMENDATION.summary)
   const [systemType, setSystemType] = useState('')
   const [keyRequirements, setKeyRequirements] = useState([])
   const [rationale, setRationale] = useState(null)
@@ -336,9 +333,8 @@ export default function App() {
       {activeTab === 'current' && stage === 'generating' && (
         <LoadingState stages={GENERATE_STAGES} cycleInterval={6000} />
       )}
-{activeTab === 'current' && stage === 'output' && (
-  <OutputPanel output={output} idea={idea} onReset={handleReset} />
-)}
+      {activeTab === 'current' && stage === 'output' && (
+        <OutputPanel output={output} idea={idea} onReset={handleReset} />
       )}
 
       {activeTab === 'previous' && (

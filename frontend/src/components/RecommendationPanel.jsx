@@ -52,10 +52,6 @@ const canGenerate = Boolean(
   selections.frontend &&
   selections.database
 )
-  const overviewText = summary || 'No recommendation data yet. You can still choose a stack and continue.'
-  const canGenerate = Boolean(
-    selections.scope && selections.backend && selections.frontend && selections.database
-  )
 
   async function submitFeedback() {
     const ok = await onIterate(feedbackText)

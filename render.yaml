@@ -19,7 +19,7 @@ services:
   - type: web
     name: prd-generator-frontend
     runtime: node
-    plan: starter
+    plan: free
     rootDir: frontend
 
     buildCommand: npm install && npm run build
