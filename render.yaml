@@ -2,7 +2,6 @@ services:
   - type: web
     name: prd-generator-backend
     runtime: python
-    runtimeVersion: 3.11.9
     plan: hobby
     rootDir: backend
 
@@ -10,5 +9,11 @@ services:
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
 
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+
       - key: OPENAI_API_KEY
+        sync: false
+
+      - key: GITHUB_PAT
         sync: false
