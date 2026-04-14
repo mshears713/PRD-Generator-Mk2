@@ -208,10 +208,20 @@ export default function App() {
     setStage('generating')
     setError('')
     try {
+      const body = {
+        idea: String(idea),
+        scope: selections.scope,
+        backend: selections.backend,
+        frontend: selections.frontend,
+        apis: selections.apis || [],
+        database: selections.database,
+        api_keys: selections.api_keys || {},
+      }
+      console.log('Generate request body:', body)
       const res = await fetch(`${API_BASE}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idea, ...selections }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error((await res.json()).detail || 'Request failed')
       const data = await res.json()
