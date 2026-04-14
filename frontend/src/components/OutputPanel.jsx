@@ -3,6 +3,11 @@ import { Alert, Button, Card, Disclosure, Input, Link, ToggleButton, ToggleButto
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
+function ensureIdeaString(idea) {
+  if (idea == null) return ''
+  return typeof idea === 'string' ? idea : JSON.stringify(idea)
+}
+
 function CopyButton({ text, label = 'Copy', copiedLabel = 'Copied!', variant = 'outline' }) {
   const [copied, setCopied] = useState(false)
 
@@ -92,7 +97,7 @@ export default function OutputPanel({ output, idea, onReset, apiBase = window.lo
     setCreatingRepo(true)
     try {
       const payload = {
-        idea: idea || null,
+        idea: ensureIdeaString(idea) || null,
         main_prd: output?.main_prd || output?.prd || '',
         backend_prd: output?.backend_prd || null,
         frontend_prd: output?.frontend_prd || null,

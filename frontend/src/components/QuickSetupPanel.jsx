@@ -78,7 +78,7 @@ export default function QuickSetupPanel({ idea, onContinue, apiBase = window.loc
   }
 
   async function loadDynamicQuestions() {
-    if (!idea?.trim()) return
+    if (!(typeof idea === 'string' ? idea : JSON.stringify(idea || '')).trim()) return
     setDynamicLoading(true)
     setDynamicError('')
     try {
