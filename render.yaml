@@ -1,8 +1,9 @@
 services:
+  # Backend
   - type: web
     name: prd-generator-backend
     runtime: python
-    plan: hobby
+    plan: starter
     rootDir: backend
 
     buildCommand: pip install -r requirements.txt
@@ -11,9 +12,23 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
-
       - key: OPENAI_API_KEY
         sync: false
-
       - key: GITHUB_PAT
         sync: false
+
+  # Frontend (STATIC)
+  - type: static
+    name: prd-generator-frontend
+    plan: starter
+    rootDir: frontend
+
+    buildCommand: npm install && npm run build
+    publishDir: dist
+
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          name: prd-generator-backend
+          type: web
+          property: url
