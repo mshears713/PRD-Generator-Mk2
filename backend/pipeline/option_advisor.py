@@ -125,19 +125,17 @@ def _evaluate_option(
 
 
 def _enforce_option_rules(result: dict, constraints_block: str, field: str, value: str) -> dict:
-    fit_score = result.get("fit_score", 50)
+    fit_score = result.get("fit_score")
     try:
         fit_score = int(fit_score)
     except (TypeError, ValueError):
-        fit_score = 50
-    fit_score = max(0, min(100, fit_score))
+        fit_score = 0
 
-    confidence = result.get("confidence", 60)
+    confidence = result.get("confidence")
     try:
         confidence = int(confidence)
     except (TypeError, ValueError):
-        confidence = 60
-    confidence = max(0, min(100, confidence))
+        confidence = 0
 
     complexity_cost = result.get("complexity_cost", "medium")
     if complexity_cost not in {"low", "medium", "high"}:
@@ -145,25 +143,7 @@ def _enforce_option_rules(result: dict, constraints_block: str, field: str, valu
 
     benefits = result.get("benefits") or []
     drawbacks = result.get("drawbacks") or []
-
     why_not = result.get("why_not_recommended")
-    if fit_score < 70:
-        if not why_not:
-            constraint_hint = ""
-            if constraints_block:
-                lines = [line.strip("- ").strip() for line in constraints_block.splitlines() if line.startswith("- ")]
-                if lines:
-                    constraint_hint = f" Constraint mismatch: {lines[0]}."
-            why_not = (
-                f"This option adds friction against the project's constraints or execution model.{constraint_hint}"
-            )
-    else:
-        why_not = None
-
-    if fit_score >= 90 and not drawbacks:
-        drawbacks = [
-            "Still adds implementation and operational overhead compared to simpler alternatives for this project."
-        ]
 
     return {
         "fit_score": fit_score,
