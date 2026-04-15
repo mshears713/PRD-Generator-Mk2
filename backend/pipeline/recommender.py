@@ -90,344 +90,24 @@ def _detect_keywords(text: str, keywords: list[str]) -> bool:
 
 
 def _build_decision_scaffold(idea: str, constraints: dict) -> dict:
-    """Build a deterministic, constraint-driven scaffold to bias the LLM."""
-    constraints = constraints or {}
-    idea_text = idea or ""
-
-    user_scale = constraints.get("user_scale")
-    auth = constraints.get("auth")
-    data = constraints.get("data") or {}
-    types = data.get("types") or []
-    persistence = data.get("persistence")
-    execution = constraints.get("execution")
-    app_shape = constraints.get("app_shape")
-    testing = constraints.get("testing") is True
-
-    has_persistent_data = persistence == "permanent"
-    has_any_data = (types and types != ["none"]) or has_persistent_data
-    no_data = ("none" in types) or (not types and not has_persistent_data)
-
-    async_exec = execution == "async"
-    realtime_exec = execution == "realtime"
-    short_exec = execution == "short"
-
-    ai_core = app_shape == "ai_core" or _detect_keywords(
-        idea_text,
-        ["ai", "llm", "assistant", "chatbot", "summarize", "generate", "classify"],
-    )
-    workflow = app_shape == "workflow" or _detect_keywords(
-        idea_text, ["workflow", "pipeline", "multi-step", "orchestration", "agent"]
-    )
-    simple = app_shape == "simple"
-
-    auth_required = auth in {"simple", "oauth"}
-    oauth_required = auth == "oauth"
-
-    ui_needed = _detect_keywords(
-        idea_text,
-        [
-            "dashboard",
-            "ui",
-            "interface",
-            "frontend",
-            "web app",
-            "website",
-            "portal",
-            "browser",
-            "mobile",
-            "admin panel",
-            "client portal",
-        ],
-    )
-
-    api_or_service = _detect_keywords(
-        idea_text, ["api", "webhook", "integration", "automation", "service"]
-    )
-
-    requires_backend = bool(
-        ai_core
-        or workflow
-        or async_exec
-        or auth_required
-        or has_persistent_data
-        or has_any_data
-        or api_or_service
-    )
-    requires_frontend = bool(ui_needed or (simple and not api_or_service))
-
-    # Allowed/required stack choices
-    allowed_backend = ["fastapi", "node"] if requires_backend else ["none"]
-    allowed_frontend = ["react", "static"] if requires_frontend else ["none"]
-    if requires_backend and requires_frontend:
-        allowed_scope = ["fullstack"]
-    elif requires_backend:
-        allowed_scope = ["backend"]
-    elif requires_frontend:
-        allowed_scope = ["frontend"]
-    else:
-        allowed_scope = ["frontend"]
-        allowed_frontend = ["static"]
-
-    if has_persistent_data:
-        allowed_database = ["postgres", "firebase"]
-    else:
-        allowed_database = ["none"]
-
-    llm_core = ai_core
-    needs_search = _detect_keywords(
-        idea_text, ["search the web", "web search", "latest", "news", "crawl", "scrape"]
-    )
-    required_apis = []
-    if llm_core:
-        required_apis.append("openrouter")
-    if needs_search:
-        required_apis.append("tavily")
-
-    # Preferred defaults within allowed choices
-    preferred_backend = "fastapi" if "fastapi" in allowed_backend else allowed_backend[0]
-    if requires_backend and not ai_core and realtime_exec and "node" in allowed_backend:
-        preferred_backend = "node"
-
-    if "react" in allowed_frontend and not (simple and no_data and not auth_required):
-        preferred_frontend = "react"
-    else:
-        preferred_frontend = allowed_frontend[0]
-
-    if has_persistent_data:
-        if realtime_exec and user_scale in {"single", "small"} and "firebase" in allowed_database:
-            preferred_database = "firebase"
-        else:
-            preferred_database = "postgres"
-    else:
-        preferred_database = "none"
-
-    if allowed_scope == ["fullstack"]:
-        preferred_scope = "fullstack"
-    elif allowed_scope == ["backend"]:
-        preferred_scope = "backend"
-    else:
-        preferred_scope = "frontend"
-
-    constraint_impact = []
-    if user_scale:
-        if user_scale == "single":
-            constraint_impact.append(
-                {
-                    "constraint": "user_scale=single",
-                    "impact": "bias toward a single-instance deployment and minimal concurrency handling",
-                }
-            )
-        elif user_scale == "small":
-            constraint_impact.append(
-                {
-                    "constraint": "user_scale=small",
-                    "impact": "use lightweight auth and storage without horizontal scaling requirements",
-                }
-            )
-        elif user_scale == "large":
-            constraint_impact.append(
-                {
-                    "constraint": "user_scale=large",
-                    "impact": "requires a server-backed architecture with durable storage and concurrency planning",
-                }
-            )
-
-    if auth:
-        if auth == "none":
-            constraint_impact.append(
-                {
-                    "constraint": "auth=none",
-                    "impact": "exclude login/session flows and any user account storage",
-                }
-            )
-        elif auth == "simple":
-            constraint_impact.append(
-                {
-                    "constraint": "auth=simple",
-                    "impact": "requires basic auth handling, which implies a backend component",
-                }
-            )
-        elif auth == "oauth":
-            constraint_impact.append(
-                {
-                    "constraint": "auth=oauth",
-                    "impact": "requires OAuth token handling and callback endpoints on the backend",
-                }
-            )
-
-    if types:
-        if "none" in types:
-            constraint_impact.append(
-                {
-                    "constraint": "data.types=none",
-                    "impact": "avoid persistent storage and keep the system stateless",
-                }
-            )
-        else:
-            constraint_impact.append(
-                {
-                    "constraint": f"data.types={','.join([t for t in types if t != 'none'])}",
-                    "impact": "system must accept and validate the specified input data types",
-                }
-            )
-
-    if persistence:
-        if persistence == "temporary":
-            constraint_impact.append(
-                {
-                    "constraint": "data.persistence=temporary",
-                    "impact": "avoid long-term storage and prefer in-memory or short-lived data handling",
-                }
-            )
-        elif persistence == "permanent":
-            constraint_impact.append(
-                {
-                    "constraint": "data.persistence=permanent",
-                    "impact": "requires a durable database for long-term storage",
-                }
-            )
-
-    if execution:
-        if execution == "realtime":
-            constraint_impact.append(
-                {
-                    "constraint": "execution=realtime",
-                    "impact": "optimize for synchronous request/response with immediate feedback",
-                }
-            )
-        elif execution == "short":
-            constraint_impact.append(
-                {
-                    "constraint": "execution=short",
-                    "impact": "keep processing within a short synchronous request window",
-                }
-            )
-        elif execution == "async":
-            constraint_impact.append(
-                {
-                    "constraint": "execution=async",
-                    "impact": "requires background job handling and influences backend choice",
-                }
-            )
-
-    if app_shape:
-        if app_shape == "simple":
-            constraint_impact.append(
-                {
-                    "constraint": "app_shape=simple",
-                    "impact": "favor a minimal interface and a single-step interaction flow",
-                }
-            )
-        elif app_shape == "ai_core":
-            constraint_impact.append(
-                {
-                    "constraint": "app_shape=ai_core",
-                    "impact": "LLM logic is primary, so include an LLM API and server-side orchestration",
-                }
-            )
-        elif app_shape == "workflow":
-            constraint_impact.append(
-                {
-                    "constraint": "app_shape=workflow",
-                    "impact": "multi-step orchestration requires backend coordination between stages",
-                }
-            )
-    if testing:
-        constraint_impact.append(
-            {
-                "constraint": "testing=true",
-                "impact": "include platform-assisted testing/tooling when assembling the stack and APIs",
-            }
-        )
-
-    assumptions = []
-    if not user_scale:
-        assumptions.append("Assuming single-user usage with no concurrent load requirements")
-    if not auth:
-        assumptions.append("Assuming no authentication unless later required")
-    if not types:
-        assumptions.append("Assuming text-only input/output unless other data types are specified")
-    if not persistence:
-        assumptions.append("Assuming no long-term storage unless explicitly required")
-    if not execution:
-        assumptions.append("Assuming synchronous processing unless async is specified")
-    if not app_shape:
-        assumptions.append("Assuming a simple single-step tool unless a workflow is specified")
-
+    """Return a minimal scaffold without pre-imposed architecture forcing."""
     return {
-        "allowed": {
-            "scope": allowed_scope,
-            "backend": allowed_backend,
-            "frontend": allowed_frontend,
-            "database": allowed_database,
-            "apis": required_apis,
-        },
-        "preferred": {
-            "scope": preferred_scope,
-            "backend": preferred_backend,
-            "frontend": preferred_frontend,
-            "database": preferred_database,
-            "apis": required_apis,
-        },
-        "derived_requirements": {
-            "requires_backend": requires_backend,
-            "requires_frontend": requires_frontend,
-            "llm_core": llm_core,
-            "needs_search": needs_search,
-            "oauth_required": oauth_required,
-            "testing_required": testing,
-        },
-        "constraint_impact": constraint_impact,
-        "assumptions": assumptions,
+        "note": "No pre-imposed architectural constraints. Model must decide based on idea and constraints."
     }
 
 
 def _enforce_stack_consistency(recommended: dict, scaffold: dict) -> dict:
-    allowed = scaffold.get("allowed", {})
-    preferred = scaffold.get("preferred", {})
-    rec = recommended or {}
-
-    scope_allowed = allowed.get("scope", [])
-    backend_allowed = allowed.get("backend", [])
-    frontend_allowed = allowed.get("frontend", [])
-    database_allowed = allowed.get("database", [])
-    required_apis = allowed.get("apis", [])
-
-    def _pick(value: str, options: list[str], fallback: str) -> str:
-        if value in options:
-            return value
-        return fallback
-
-    scope = _pick(rec.get("scope"), scope_allowed, preferred.get("scope"))
-    backend = _pick(rec.get("backend"), backend_allowed, preferred.get("backend"))
-    frontend = _pick(rec.get("frontend"), frontend_allowed, preferred.get("frontend"))
-    database = _pick(rec.get("database"), database_allowed, preferred.get("database"))
-
-    if scope == "backend":
-        frontend = "none"
-    elif scope == "frontend":
-        backend = "none"
-    elif scope == "fullstack":
-        backend = _pick(backend, ["fastapi", "node"], preferred.get("backend"))
-        frontend = _pick(frontend, ["react", "static"], preferred.get("frontend"))
-
-    apis = rec.get("apis") or []
+    """Contract-safe pass-through with neutral defaults only."""
+    rec = recommended if isinstance(recommended, dict) else {}
+    apis = rec.get("apis")
     if not isinstance(apis, list):
         apis = []
-    # Ensure required APIs are present
-    for api in required_apis:
-        if api not in apis:
-            apis.append(api)
-    # Deduplicate while preserving order
-    seen = set()
-    apis = [a for a in apis if not (a in seen or seen.add(a))]
-
     return {
-        "scope": scope,
-        "backend": backend,
-        "frontend": frontend,
+        "scope": rec.get("scope", ""),
+        "backend": rec.get("backend", ""),
+        "frontend": rec.get("frontend", ""),
         "apis": apis,
-        "database": database,
+        "database": rec.get("database", ""),
     }
 
 
@@ -469,17 +149,8 @@ def get_recommendation(
     if constraints_block:
         user_content = f"{constraints_block}\n\nIdea: {working_idea}"
     scaffold_block = (
-        "Decision scaffold (use this to make deterministic, constraint-driven choices):\n"
-        f"- Allowed scope: {', '.join(scaffold['allowed']['scope'])}\n"
-        f"- Allowed backend: {', '.join(scaffold['allowed']['backend'])}\n"
-        f"- Allowed frontend: {', '.join(scaffold['allowed']['frontend'])}\n"
-        f"- Allowed database: {', '.join(scaffold['allowed']['database'])}\n"
-        f"- Required APIs (if any): {', '.join(scaffold['allowed']['apis']) or 'none'}\n"
-        f"- Preferred defaults: scope={scaffold['preferred']['scope']}, "
-        f"backend={scaffold['preferred']['backend']}, "
-        f"frontend={scaffold['preferred']['frontend']}, "
-        f"database={scaffold['preferred']['database']}\n"
-        f"- Derived requirements: {scaffold['derived_requirements']}\n"
+        "Decision scaffold:\n"
+        f"- {scaffold.get('note', 'No pre-imposed architectural constraints.')}\n"
     )
     user_content = f"{scaffold_block}\n\n{user_content}"
 
@@ -604,7 +275,6 @@ def get_recommendation(
             },
         )
         result["recommended"] = _enforce_stack_consistency(result.get("recommended", {}), scaffold)
-        result["constraint_impact"] = scaffold.get("constraint_impact", [])
         if not result.get("assumptions"):
             result["assumptions"] = scaffold.get("assumptions", [])
         confidence = result.get("confidence")
@@ -622,9 +292,6 @@ def get_recommendation(
         api_candidates = select_api_candidates(idea, constraints or {})
         result["api_candidates"] = api_candidates
         selected_api_ids = [item["id"] for item in api_candidates.get("selected", [])]
-        if "recommended" not in result:
-            result["recommended"] = {}
-        result["recommended"]["apis"] = selected_api_ids
 
         # Build concise API rationale from selector
         selected_names = [item.get("name", item["id"]) for item in api_candidates.get("selected", [])]

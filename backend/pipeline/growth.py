@@ -105,16 +105,6 @@ def generate_growth_check(prd: str, selections: dict, normalized: dict | None = 
             if key not in result or not isinstance(result[key], list):
                 result[key] = []
 
-        # Stack-aware critique for common overrides
-        database = selections.get("database")
-        db_warning = None
-        if database == "firebase":
-            db_warning = "Firebase simplifies setup but limits complex relational queries."
-        elif database == "postgres":
-            db_warning = "Postgres suits relational data; ensure migrations and backups are planned."
-        if db_warning:
-            result["warnings"].append({"title": "Database choice", "detail": db_warning})
-
         # Consistency issues
         result["consistency_issues"] = check_stack_consistency(selections, normalized or {})
 
