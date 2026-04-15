@@ -97,8 +97,18 @@ def _build_decision_scaffold(idea: str, constraints: dict) -> dict:
 
 
 def _enforce_stack_consistency(recommended: dict, scaffold: dict) -> dict:
-    """No-op: preserve model-selected stack values as-is."""
-    return recommended or {}
+    """Contract-safe pass-through with neutral defaults only."""
+    rec = recommended if isinstance(recommended, dict) else {}
+    apis = rec.get("apis")
+    if not isinstance(apis, list):
+        apis = []
+    return {
+        "scope": rec.get("scope", ""),
+        "backend": rec.get("backend", ""),
+        "frontend": rec.get("frontend", ""),
+        "apis": apis,
+        "database": rec.get("database", ""),
+    }
 
 
 def _compute_confidence(scaffold: dict) -> dict:

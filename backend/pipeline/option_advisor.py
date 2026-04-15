@@ -129,7 +129,7 @@ def _enforce_option_rules(result: dict, constraints_block: str, field: str, valu
     try:
         fit_score = int(fit_score)
     except (TypeError, ValueError):
-        fit_score = 0
+        fit_score = 50
 
     confidence = result.get("confidence")
     try:

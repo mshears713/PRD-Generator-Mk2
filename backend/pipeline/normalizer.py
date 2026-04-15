@@ -127,7 +127,7 @@ def normalize(idea: str, selections: dict) -> dict:
         # Ensure required fields exist even if LLM omits them
         for key in ("assumptions", "unknowns", "input_output", "data_model", "constraints"):
             result.setdefault(key, [])
-        result.setdefault("selected_stack", {})
+        result["selected_stack"] = selections
 
         return result
     except (json.JSONDecodeError, ValueError, TypeError) as e:
