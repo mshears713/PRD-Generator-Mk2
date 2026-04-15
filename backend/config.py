@@ -28,7 +28,11 @@ def _resolve_fake_flag() -> bool:
     return _detect_pytest()
 
 
-USE_FAKE_LLM = _resolve_fake_flag()
+# LLM API calls are disabled on this branch.
+# All pipeline stages return static stub responses (see fake_llm_response() in llm.py).
+# To re-enable real LLM calls, restore the line below and set USE_FAKE_LLM=false:
+#   USE_FAKE_LLM = _resolve_fake_flag()
+USE_FAKE_LLM = True
 
 
 def prd_decomposition_enabled() -> bool:
