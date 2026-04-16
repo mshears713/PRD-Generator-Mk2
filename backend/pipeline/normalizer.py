@@ -127,12 +127,6 @@ def normalize(idea: str, selections: dict) -> dict:
         # Ensure required fields exist even if LLM omits them
         for key in ("assumptions", "unknowns", "input_output", "data_model", "constraints"):
             result.setdefault(key, [])
-
-        # Enforce stack alignment (selections are hard truth)
-        result["constraints"] = _build_stack_constraints(selections)
-        result["input_output"] = _build_stack_io(selections)
-        result["data_model"] = _build_data_model(selections)
-        result["assumptions"] = _strip_conflicting_assumptions(result.get("assumptions", []), selections)
         result["selected_stack"] = selections
 
         return result
