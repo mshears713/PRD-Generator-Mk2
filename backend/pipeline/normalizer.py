@@ -91,7 +91,7 @@ def normalize(idea: str, selections: dict) -> dict:
                     '  "purpose": "One precise sentence: what the system does and for whom",\n'
                     '  "core_features": ["concrete feature 1", "concrete feature 2", "..."],\n'
                     '  "user_types": ["user role 1", "user role 2"],\n'
-                    '  "input_output": ["Step 1: user input → component → output"],\n'
+                    '  "input_output": ["Step 1: trigger → execution step → output"],\n'
                     '  "data_model": ["Entity: key fields / storage"],\n'
                     '  "constraints": ["technical constraint derived from stack selections"],\n'
                     '  "assumptions": ["explicit assumption stated as assumption"],\n'
@@ -100,9 +100,14 @@ def normalize(idea: str, selections: dict) -> dict:
                     "Rules:\n"
                     "- purpose: specific (bad: 'helps users'; good: 'lets remote teams create, assign, and track tasks with real-time updates').\n"
                     "- core_features: 4-6 capabilities; each describes an action + target + outcome.\n"
-                    "- input_output: 3-5 ordered strings showing how a request moves through the system (include interface, component, and response).\n"
+                    "- input_output: 3-5 ordered strings describing real system execution flow.\n"
+                    "- input_output must include trigger(s), processing step(s), and output(s).\n"
+                    "- input_output can include internal processes such as background jobs, file processing, sandbox execution, dependency resolution, and multi-stage pipelines.\n"
+                    "- input_output must represent actual behavior, not generic UI or request/response phrasing unless central to the idea.\n"
+                    "- Good examples: 'System clones repository into isolated environment', 'Dependency manager installs required packages', 'Execution engine attempts to run entry point', 'Logs are captured and analyzed for failure classification'.\n"
+                    "- Bad examples: 'User submits input', 'System processes request', 'Response returned to user'.\n"
                     "- data_model: 2-4 entries naming the main entities with 1-2 key fields; if database=none, state 'No persistent data stored'.\n"
-                    "- constraints: derive directly from stack selections (e.g., FastAPI → HTTP JSON API layer; Postgres → relational schema).\n"
+                    "- constraints: derive directly from stack selections. Stack selections define technical constraints, not interaction model defaults.\n"
                     "- assumptions: 3-5 explicit statements resolving ambiguity (format 'Assuming ...').\n"
                     "- unknowns: 2-4 precise gaps/questions the idea does not answer.\n"
                     "- Use only what the idea implies; do NOT invent complex features beyond the scope.\n"
