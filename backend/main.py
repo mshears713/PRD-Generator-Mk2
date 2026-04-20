@@ -28,6 +28,7 @@ from pipeline.prd_gen import generate_prd
 from pipeline.prd_decomposer import decompose_prds
 from pipeline.backend_prd_standalone import generate_backend_prd
 from pipeline.growth import generate_growth_check
+from pipeline.prd_quality import check_prd_quality
 from pipeline.env_builder import build_env
 from pipeline.question_generator import generate_dynamic_questions
 from pipeline.answer_mapper import map_answers_to_constraints
@@ -75,6 +76,7 @@ class GenerateResponse(BaseModel):
     frontend_prd: Optional[str] = None
     env: str
     growth_check: dict
+    prd_quality: Optional[dict] = None
     # Backward-compat alias (legacy frontend expects `prd`)
     prd: str
 
@@ -400,12 +402,14 @@ def generate(req: GenerateRequest):
     # Decomposition backend_prd (with contract injection) takes precedence if available
     backend_prd = (extra_prds.get("backend_prd") if extra_prds else None) or backend_prd
     frontend_prd = extra_prds.get("frontend_prd") if extra_prds else None
+    prd_quality = check_prd_quality(prd, backend_prd)
     return {
         "main_prd": prd,
         "backend_prd": backend_prd,
         "frontend_prd": frontend_prd,
         "env": env,
         "growth_check": growth_check,
+        "prd_quality": prd_quality,
         "prd": prd,
     }
 
