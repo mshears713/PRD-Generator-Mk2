@@ -7,7 +7,6 @@ from llm import call_llm
 CORE_ENTITIES_PLACEHOLDER = "{{STACKLENS_CORE_ENTITIES}}"
 API_CONTRACT_PLACEHOLDER = "{{STACKLENS_API_CONTRACT}}"
 
-
 def _inject_contract(markdown: str, core_entities_markdown: str, api_contract_markdown: str) -> str:
     if markdown.count(CORE_ENTITIES_PLACEHOLDER) != 1:
         raise ValueError("Backend PRD template must include {{STACKLENS_CORE_ENTITIES}} exactly once.")
@@ -25,7 +24,6 @@ def _inject_contract(markdown: str, core_entities_markdown: str, api_contract_ma
     if CORE_ENTITIES_PLACEHOLDER in injected or API_CONTRACT_PLACEHOLDER in injected:
         raise ValueError("Backend PRD contract placeholders were not fully replaced.")
     return injected
-
 
 def generate_backend_prd(
     main_prd: str,
@@ -83,20 +81,14 @@ def generate_backend_prd(
         "## Testing Strategy\n"
         "## Out of Scope\n"
         "## Implementation Phases\n\n"
-        "Only output the markdown. No preamble, no closing remarks."
-        
-        "MANDATORY COMPONENT SPECIFICATION"
-        
-
-    "For every component, you MUST include:"
-
-    "- Input: what data it receives
-    "- Output: what data it produces
-    "- Processing: what transformation it performs
-
-        "Do NOT describe components abstractly."
-
-"A component description is incomplete if it only states responsibility."
+        "Only output the markdown. No preamble, no closing remarks.\n\n"
+        "MANDATORY COMPONENT SPECIFICATION\n"
+        "For every component, you MUST include:\n"
+        "- Input: what data it receives\n"
+        "- Output: what data it produces\n"
+        "- Processing: what transformation it performs\n\n"
+        "Do NOT describe components abstractly.\n"
+        "A component description is incomplete if it only states responsibility."
     )
 
     result = call_llm(
