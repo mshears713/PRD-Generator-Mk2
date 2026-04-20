@@ -87,8 +87,9 @@ def extract_api_contract_block(contract_section: str) -> dict | None:
             break
 
     if header_idx is None:
-        # API Contract heading present but content is neither table nor "No backend API required."
-        raise ValueError("API Contract table not found and 'No backend API required.' not present.")
+        # Heading present but content is neither a table nor the "no backend" sentinel.
+        # Treat as absent so the decomposer can apply its stack fallback.
+        return None
 
     table_lines = []
     for ln in lines[header_idx:]:
