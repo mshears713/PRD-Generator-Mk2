@@ -26,6 +26,7 @@ from pipeline.normalizer import normalize
 from pipeline.analyzer import analyze
 from pipeline.prd_gen import generate_prd
 from pipeline.prd_decomposer import decompose_prds
+from pipeline.backend_prd_standalone import generate_backend_prd
 from pipeline.growth import generate_growth_check
 from pipeline.env_builder import build_env
 from pipeline.question_generator import generate_dynamic_questions
@@ -386,6 +387,7 @@ def generate(req: GenerateRequest):
         normalized = normalize(req.idea, selections)
         architecture = analyze(normalized)
         prd = generate_prd(normalized, architecture)
+        backend_prd = generate_backend_prd(prd, normalized, architecture)
         extra_prds = None
         if prd_decomposition_enabled():
             extra_prds = decompose_prds(prd, normalized, architecture)
@@ -395,7 +397,8 @@ def generate(req: GenerateRequest):
 
     env = build_env(req.apis, req.api_keys, req.database)
 
-    backend_prd = extra_prds.get("backend_prd") if extra_prds else None
+    # Decomposition backend_prd (with contract injection) takes precedence if available
+    backend_prd = (extra_prds.get("backend_prd") if extra_prds else None) or backend_prd
     frontend_prd = extra_prds.get("frontend_prd") if extra_prds else None
     return {
         "main_prd": prd,
