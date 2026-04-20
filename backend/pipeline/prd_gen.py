@@ -44,22 +44,29 @@ def generate_prd(normalized: dict, architecture: dict) -> str:
                 "---\n"
 
                 "- Produce a structured PRD in markdown.\n"
-                "- Structure must adapt to the system.\n\n"
+                "- Structure must adapt to the system. Do NOT apply a fixed template.\n\n"
 
-                "Minimum required sections:\n"
-                "- Overview\n"
-                "- System Contract (Source of Truth)\n"
-                "- Architecture\n"
-                "- Components\n"
-                "- Test Cases\n\n"
+                "Required sections (always present, in any order that aids readability):\n"
+                "  ## Overview\n"
+                "  ## System Contract (Source of Truth)\n"
+                "  ## Architecture\n"
+                "  ## Components\n"
+                "  ## Test Cases\n\n"
 
-                "Optional sections (include ONLY if relevant):\n"
-                "- API Contract (only if backend exposes endpoints)\n"
-                "- Frontend (only if frontend exists)\n"
-                "- State Model (only if state is meaningful)\n"
-                "- External Integrations / API Usage (only if APIs are used)\n\n"
+                "System Contract rules:\n"
+                "- Always include exactly one line: '- frontend_required: true' or '- frontend_required: false'\n"
+                "- Add subsections (Core Entities, API Contract, Data Flow) ONLY when the system warrants them.\n"
+                "- Do NOT number subsections (no '### 1.', '### 2.'). Use plain '### Core Entities' etc.\n"
+                "- Do NOT inflate the System Contract with boilerplate or coordination-layer text.\n\n"
 
-                "- Do NOT include sections that are not justified by the system.\n"
+                "Optional sections (include ONLY when grounded in the system):\n"
+                "- Any API-facing section — only if backend exposes HTTP endpoints\n"
+                "- Any frontend section — only if frontend exists in selected_stack\n"
+                "- Any state or database section — only if state or persistence is part of the system\n"
+                "- Any external integrations section — only if third-party APIs are used\n\n"
+
+                "- Do NOT include '## API Usage', '## Database Design', '## Implementation Notes for Build Agents',\n"
+                "  '### Frontend / Backend Boundary', or '### State Model' unless clearly justified.\n"
                 "- Do NOT enforce a fixed section order beyond readability.\n\n"
 
                 "---\n"
@@ -68,15 +75,14 @@ def generate_prd(normalized: dict, architecture: dict) -> str:
 
                 "- If selected_stack.frontend == 'none':\n"
                 "  → Do NOT include frontend sections\n"
+                "  → Set frontend_required: false in System Contract\n\n"
 
                 "- If selected_stack.backend == 'none':\n"
                 "  → Do NOT include API sections\n"
+                "  → If System Contract has an API Contract subsection, write 'No backend API required.' only\n\n"
 
                 "- If selected_stack.database == 'none':\n"
                 "  → Explicitly state no persistent storage\n\n"
-
-                "- In System Contract, always include:\n"
-                "  frontend_required: true|false based on selected_stack.frontend\n\n"
 
                 "---\n"
                 "IMPLEMENTATION FOCUS\n"

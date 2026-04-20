@@ -2,31 +2,27 @@ from pipeline.backend_prd_gen import generate_backend_prd
 from pipeline.frontend_prd_gen import generate_frontend_prd
 from pipeline.prd_contract import (
     backend_required_from_api_contract,
-    extract_api_contract_block,
-    extract_core_entities_block,
-    extract_system_contract_section,
-    parse_frontend_required,
+    parse_system_contract,
 )
 
 
 def decompose_prds(main_prd: str, normalized: dict, architecture: dict) -> dict:
-    contract_section = extract_system_contract_section(main_prd)
+    # Hard-fails if PRD is empty or System Contract section is missing.
+    parsed = parse_system_contract(main_prd)
 
-    try:
-        frontend_required = parse_frontend_required(contract_section)
-    except ValueError:
-        stack = (normalized or {}).get("selected_stack") or {}
-        frontend_required = (stack.get("frontend") or "none") != "none"
+    frontend_required = parsed["frontend_required"]
 
-    core_entities_markdown = extract_core_entities_block(contract_section)
-    api_contract = extract_api_contract_block(contract_section)
-    api_contract_markdown = api_contract.get("markdown") or ""
-
-    try:
+    api_contract = parsed["api_contract"]
+    if api_contract is not None:
         backend_required = backend_required_from_api_contract(api_contract)
-    except ValueError:
+    else:
+        # No API Contract subsection — fall back to stack selection.
         stack = (normalized or {}).get("selected_stack") or {}
         backend_required = (stack.get("backend") or "none") != "none"
+
+    # Coerce None → "" so sub-generators always receive strings.
+    core_entities_markdown = parsed["core_entities_markdown"] or ""
+    api_contract_markdown = (api_contract or {}).get("markdown") or ""
 
     backend_prd = None
     if backend_required:
@@ -49,4 +45,3 @@ def decompose_prds(main_prd: str, normalized: dict, architecture: dict) -> dict:
         )
 
     return {"backend_prd": backend_prd, "frontend_prd": frontend_prd}
-
