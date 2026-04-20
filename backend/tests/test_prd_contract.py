@@ -175,6 +175,33 @@ def test_extract_api_contract_block_returns_none_when_absent():
     assert result is None
 
 
+def test_extract_api_contract_block_returns_none_when_empty_body():
+    # Heading present, nothing inside it before the next section.
+    contract = (
+        "## System Contract (Source of Truth)\n"
+        "- frontend_required: false\n\n"
+        "### API Contract\n"
+        "### Data Flow\n"
+        "1. x\n"
+    )
+    assert extract_api_contract_block(contract) is None
+
+
+def test_extract_api_contract_block_returns_none_when_content_unrecognized():
+    # Heading present but body is neither a table nor the explicit sentinel.
+    # This is the runtime error case: LLM wrote prose instead of a table.
+    contract = (
+        "## System Contract (Source of Truth)\n"
+        "- frontend_required: true\n\n"
+        "### API Contract\n"
+        "TBD — endpoints not yet defined.\n\n"
+        "### Data Flow\n"
+        "1. x\n"
+    )
+    result = extract_api_contract_block(contract)
+    assert result is None
+
+
 # ---------------------------------------------------------------------------
 # New tests — parse_system_contract() top-level function
 # ---------------------------------------------------------------------------
