@@ -2,10 +2,12 @@ import re
 
 
 _H2_SYSTEM_CONTRACT_RE = re.compile(r"^##\s+System Contract\s+\(Source of Truth\)\s*$", re.MULTILINE)
-_H3_CORE_ENTITIES_RE = re.compile(r"^###\s+1\.\s+Core Entities\s*$", re.MULTILINE)
-_H3_API_CONTRACT_RE = re.compile(r"^###\s+2\.\s+API Contract\s*$", re.MULTILINE)
-_H3_DATA_FLOW_RE = re.compile(r"^###\s+3\.\s+Data Flow\s*$", re.MULTILINE)
+# Match with or without a numeric prefix (e.g. "### Core Entities" or "### 1. Core Entities")
+_H3_CORE_ENTITIES_RE = re.compile(r"^###\s+(?:\d+\.\s+)?Core Entities\s*$", re.MULTILINE)
+_H3_API_CONTRACT_RE = re.compile(r"^###\s+(?:\d+\.\s+)?API Contract\s*$", re.MULTILINE)
+_H3_DATA_FLOW_RE = re.compile(r"^###\s+(?:\d+\.\s+)?Data Flow\s*$", re.MULTILINE)
 _H2_NEXT_SECTION_RE = re.compile(r"^##\s+", re.MULTILINE)
+_H3_ANY_RE = re.compile(r"^###\s+", re.MULTILINE)
 
 
 def extract_system_contract_section(main_prd: str) -> str:
@@ -28,34 +30,52 @@ def parse_frontend_required(contract_section: str) -> bool:
     if not contract_section:
         raise ValueError("System Contract section is empty; cannot parse frontend_required.")
 
-    match = re.search(r"^- frontend_required:\s*(true|false)\s*$", contract_section, re.IGNORECASE | re.MULTILINE)
+    match = re.search(r"^-\s*frontend_required:\s*(true|false)\s*$", contract_section, re.IGNORECASE | re.MULTILINE)
     if not match:
         raise ValueError("System Contract missing '- frontend_required: true|false' line.")
     return match.group(1).lower() == "true"
 
 
-def _extract_between_headings(text: str, start_re: re.Pattern, end_re: re.Pattern) -> str:
+def _extract_after_heading(text: str, start_re: re.Pattern, end_res: list) -> str | None:
+    """Extract text after start_re up to the first matching end pattern, or None if start absent."""
     start_match = start_re.search(text)
     if not start_match:
-        raise ValueError(f"Missing expected heading: {start_re.pattern}")
+        return None
 
-    end_match = end_re.search(text, start_match.end())
-    if not end_match:
-        raise ValueError(f"Missing expected heading: {end_re.pattern}")
+    search_from = start_match.end()
+    end_pos = None
+    for end_re in end_res:
+        m = end_re.search(text, search_from)
+        if m and (end_pos is None or m.start() < end_pos):
+            end_pos = m.start()
 
-    body = text[start_match.end() : end_match.start()]
-    return body.strip() + "\n" if body.strip() else ""
+    body = text[search_from:end_pos] if end_pos is not None else text[search_from:]
+    stripped = body.strip()
+    return (stripped + "\n") if stripped else ""
 
 
-def extract_core_entities_block(contract_section: str) -> str:
-    return _extract_between_headings(contract_section, _H3_CORE_ENTITIES_RE, _H3_API_CONTRACT_RE)
+def extract_core_entities_block(contract_section: str) -> str | None:
+    """Return the Core Entities block body, or None if the heading is absent."""
+    return _extract_after_heading(
+        contract_section,
+        _H3_CORE_ENTITIES_RE,
+        [_H3_API_CONTRACT_RE, _H3_DATA_FLOW_RE, _H2_NEXT_SECTION_RE],
+    )
 
 
-def extract_api_contract_block(contract_section: str) -> dict:
+def extract_api_contract_block(contract_section: str) -> dict | None:
+    """Return a parsed API contract dict, or None if the heading is absent."""
     if not contract_section:
         raise ValueError("System Contract section is empty; cannot extract API Contract.")
 
-    api_body = _extract_between_headings(contract_section, _H3_API_CONTRACT_RE, _H3_DATA_FLOW_RE)
+    api_body = _extract_after_heading(
+        contract_section,
+        _H3_API_CONTRACT_RE,
+        [_H3_DATA_FLOW_RE, _H2_NEXT_SECTION_RE, _H3_ANY_RE],
+    )
+    if api_body is None:
+        return None
+
     if re.search(r"No backend API required\.?", api_body, re.IGNORECASE):
         return {"type": "none", "markdown": "No backend API required."}
 
@@ -67,6 +87,7 @@ def extract_api_contract_block(contract_section: str) -> dict:
             break
 
     if header_idx is None:
+        # API Contract heading present but content is neither table nor "No backend API required."
         raise ValueError("API Contract table not found and 'No backend API required.' not present.")
 
     table_lines = []
@@ -87,3 +108,36 @@ def backend_required_from_api_contract(api_contract: dict) -> bool:
     if not api_contract or not isinstance(api_contract, dict):
         raise ValueError("api_contract must be a dict with keys {type, markdown}.")
     return api_contract.get("type") != "none"
+
+
+def parse_system_contract(main_prd: str) -> dict:
+    """Parse the System Contract section and return a normalized result dict.
+
+    Returns:
+        {
+            "system_contract_markdown": str,
+            "frontend_required": bool,
+            "core_entities_markdown": str | None,
+            "api_contract": {"type": "none"|"table", "markdown": str} | None,
+            "data_flow_markdown": str | None,
+        }
+
+    Raises ValueError if main_prd is empty, the System Contract section is missing,
+    or frontend_required cannot be determined.
+    """
+    contract_section = extract_system_contract_section(main_prd)
+    frontend_required = parse_frontend_required(contract_section)
+    core_entities_markdown = extract_core_entities_block(contract_section)
+    api_contract = extract_api_contract_block(contract_section)
+    data_flow_markdown = _extract_after_heading(
+        contract_section,
+        _H3_DATA_FLOW_RE,
+        [_H2_NEXT_SECTION_RE, _H3_ANY_RE],
+    )
+    return {
+        "system_contract_markdown": contract_section,
+        "frontend_required": frontend_required,
+        "core_entities_markdown": core_entities_markdown,
+        "api_contract": api_contract,
+        "data_flow_markdown": data_flow_markdown,
+    }
