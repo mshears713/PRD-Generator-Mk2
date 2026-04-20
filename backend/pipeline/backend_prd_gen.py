@@ -84,6 +84,19 @@ def generate_backend_prd(
         "## Out of Scope\n"
         "## Implementation Phases\n\n"
         "Only output the markdown. No preamble, no closing remarks."
+        
+        "MANDATORY COMPONENT SPECIFICATION"
+        
+
+    "For every component, you MUST include:"
+
+    "- Input: what data it receives
+    "- Output: what data it produces
+    "- Processing: what transformation it performs
+
+        "Do NOT describe components abstractly."
+
+"A component description is incomplete if it only states responsibility."
     )
 
     result = call_llm(
