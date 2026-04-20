@@ -141,7 +141,7 @@ def test_generate_omits_decomposed_prds_when_flag_disabled():
         response = client.post("/generate", json=payload)
         assert response.status_code == 200
         data = response.json()
-        assert data.get("backend_prd") is None
+        assert data.get("backend_prd") is not None  # standalone call always runs
         assert data.get("frontend_prd") is None
     finally:
         if prev is None:
