@@ -177,6 +177,12 @@ def generate_prd(normalized: dict, architecture: dict) -> str:
 
     "---\n"
 
+    "If the system contains any scoring, classification, or evaluation logic:"
+
+   "- You MUST explicitly define the rules, thresholds, or decision criteria."
+   " - You MUST show how inputs are transformed into outputs."
+   " - You MUST NOT leave core logic as a conceptual description."
+
     "Output ONLY the markdown. No preamble. No closing remarks."
 )
 
