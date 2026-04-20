@@ -691,7 +691,7 @@ def fake_llm_response(agent_name: str, input_data: dict) -> dict:
         return _fake_analyzer(input_data)
     if agent_name == "prd_gen":
         return _fake_prd_gen(input_data)
-    if agent_name == "backend_prd_gen":
+    if agent_name in ("backend_prd_gen", "backend_prd_standalone"):
         return _fake_backend_prd_gen(input_data)
     if agent_name == "frontend_prd_gen":
         return _fake_frontend_prd_gen(input_data)
