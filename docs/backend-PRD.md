@@ -24,14 +24,14 @@ The recommend flow is parallel: Recommender runs first, then Context Advisor and
 
 | Method | Path | Purpose | Input | Output |
 |---|---|---|---|---|
-| `POST` | `/recommend` | Generate architecture recommendation + save session | `{idea: string, constraints?: dict}` | Recommendation package (see Data/Models) |
-| `POST` | `/generate` | Run generate pipeline + save session | `{idea, scope, backend, frontend, apis, database, api_keys}` | `{prd, env, growth_check}` |
+| `POST` | `/recommend` | Generate architecture recommendation + save session | `{idea: string, constraints?: dict, answers?: dict}` | Recommendation package (see Data/Models) |
+| `POST` | `/generate` | Run generate pipeline + save session | `{idea, scope, backend, frontend, apis, database, api_keys}` | `{main_prd, backend_prd?, frontend_prd?, env, growth_check, prd_quality?, prd}` |
 | `GET` | `/sessions/latest` | Retrieve most recent session | — | Session object |
 | `GET` | `/sessions` | List session history | — | Array of session summaries |
 | `GET` | `/sessions/{id}` | Retrieve a specific session by ID | `id` path param | Session object |
 | `POST` | `/sessions/{id}/iterate` | Re-run recommendation on an existing session | `id` path param + optional updated constraints | New recommendation package |
-| `POST` | `/create-repo` | Create GitHub repository from generated artifacts | `{prd, env, growth_check, session_id?}` | `{repo_url, kickoff_prompt}` |
-| `GET` | `/quick-setup/questions` | Dynamic question generator for constraint intake | Optional query params | Array of question objects |
+| `POST` | `/create-repo` | Create GitHub repository from generated artifacts | `{main_prd, backend_prd?, frontend_prd?, env?, repo_name?, private?, idea?}` | `{repo_name, repo_url, kickoff_prompt, created_files}` |
+| `POST` | `/quick-setup/questions` | Dynamic question generator for constraint intake | `{idea: string}` | `{questions: [...]}` |
 | `GET` | `/health` | Service health check | — | `{status: string}` |
 
 All endpoints accept and return JSON. CORS is open for frontend and external client compatibility.
@@ -41,7 +41,10 @@ All endpoints accept and return JSON. CORS is open for frontend and external cli
 ### RecommendRequest
 ```
 idea: string           # raw user-submitted idea text
-constraints?: dict     # optional QuickSetup answers as key-value pairs
+constraints?: dict     # optional QuickSetup answers as key-value pairs (default: {})
+answers?: dict         # optional structured answers from dynamic question flow
+                       #   {fixed_answers: dict, dynamic_answers: dict}
+                       #   when present, overrides constraints (mapped via answer_mapper)
 ```
 
 ### RecommendResponse
@@ -54,7 +57,9 @@ scope_boundaries: string[]          # 3-5 in/out-of-scope statements
 phased_plan: string[]               # 3-phase build plan
 recommended: StackSelection         # recommended stack dict
 rationale: dict                     # per-field rationale strings
-confidence: float                   # 0.0–1.0 recommendation confidence score
+confidence: object                  # {score: int (0–100), reason: string}
+constraint_impact: object[]         # [{constraint: string, impact: string}]
+assumptions: string[]               # assumptions made when constraints were sparse
 deployment: DeploymentOption[]      # 3 deployment options, one recommended=true
 architecture: ArchitectureAdvice    # per-option fit scores and advice
 api_candidates: ApiCandidateSet     # selected/candidate/rejected API metadata
@@ -82,10 +87,32 @@ api_keys: dict[str, str]   # user-supplied API key values keyed by api id
 
 ### GenerateResponse
 ```
-prd: string              # markdown PRD document
+main_prd: string         # main PRD markdown document (always present)
+backend_prd?: string     # backend-focused PRD markdown (always generated; may be overridden by decomposer)
+frontend_prd?: string    # frontend-focused PRD markdown (present only when decomposition is enabled)
 env: string              # .env file contents (plain text)
-growth_check: object     # {good, warnings, missing} — each array of {title, detail}
-backend_prd?: string     # present only when decomposition is enabled in config
+growth_check: object     # {good, warnings, missing, risk_score?, quick_wins?, blockers?, consistency_issues?}
+prd_quality?: object     # {passed: bool, warnings: string[], summary: string}
+prd: string              # backward-compat alias for main_prd (legacy frontend support)
+```
+
+### CreateRepoRequest
+```
+main_prd: string         # required — main PRD markdown
+backend_prd?: string     # optional backend PRD markdown
+frontend_prd?: string    # optional frontend PRD markdown
+env?: string             # optional .env file contents
+repo_name?: string       # optional override for repository name (validated, slugified)
+private?: bool           # whether repo is private (default: true)
+idea?: string            # optional original idea text (used for repo naming fallback)
+```
+
+### CreateRepoResponse
+```
+repo_name: string        # final repository name created (may differ from requested if conflict resolved)
+repo_url: string         # full GitHub URL of the created repository
+kickoff_prompt: string   # ready-to-use prompt for a coding agent to start building
+created_files: string[]  # list of file paths committed to the repository
 ```
 
 ### Session
@@ -180,7 +207,7 @@ drawbacks: string[]      # 1-2 project-specific drawbacks
 - Implement session persistence: save session after `/recommend`; update after `/generate`; expose `/sessions/latest`, `/sessions`, `/sessions/{id}`, `/sessions/{id}/iterate`.
 - Implement GitHub client and bootstrap service; wire `/create-repo` endpoint.
 - Implement `api_registry.py` and API candidate selector; wire into Recommender output.
-- Add `GET /quick-setup/questions` dynamic question generator route.
+- Add `POST /quick-setup/questions` dynamic question generator route (body: `{idea: string}`, response: `{questions: [...]}`).  
 - Verify: Session retrieved after recommendation matches submitted idea; `/create-repo` returns repo URL and kickoff prompt against GitHub API (or mock).
 
 ### Phase 4 — Validation, tests, and polish

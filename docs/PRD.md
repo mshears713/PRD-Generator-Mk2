@@ -40,7 +40,7 @@ The backend pipeline runs in two phases: a `/recommend` phase that produces an a
 ### PRD Generator
 - **Responsibility:** Third stage of the generate pipeline. Combines normalized definition and architecture analysis into a full PRD markdown document — the primary user-facing deliverable.
 - **Interface:** Receives `normalized` and `architecture` JSON; returns a markdown string rendered directly in the UI.
-- **Key logic:** `gpt-4o` plain-text call. Output must contain exactly these sections in order: Overview, Architecture, Components, API Usage, Database Design, Test Cases (minimum 6 rows).
+- **Key logic:** `gpt-4o` plain-text call. Structure adapts to the system type — no fixed section order is enforced. Required sections (always present): Overview, System Contract (Source of Truth), Architecture, Components, Test Cases. Optional sections (only when grounded in the system): API-facing, CLI usage, state/database, external integrations, decision logic/scoring, failure modes. The System Contract must always include exactly one line: `- frontend_required: true` or `- frontend_required: false`.
 
 ### Backend PRD Generator
 - **Responsibility:** Optional decomposition stage. Expands the main PRD into a backend-focused implementation PRD with endpoint specifications, data models, integration details, and four fixed implementation phases.
@@ -59,7 +59,7 @@ The backend pipeline runs in two phases: a `/recommend` phase that produces an a
 
 ### GitHub Bootstrap Service
 - **Responsibility:** Creates a GitHub repository, commits scaffold files, and returns a kickoff prompt for external coding agents.
-- **Interface:** Called by `POST /create-repo`; receives generated PRD, `.env`, and growth check outputs.
+- **Interface:** Called by `POST /create-repo`; receives `{main_prd, backend_prd?, frontend_prd?, env?, repo_name?, private?, idea?}`; returns `{repo_name, repo_url, kickoff_prompt, created_files}`.
 - **Key logic:** GitHub API wrapper assembles scaffold file set, names the repo deterministically, and returns a ready-to-use repository URL and kickoff prompt.
 
 ### React Frontend
@@ -98,13 +98,13 @@ Sessions are retrievable via `/sessions/latest`, `/sessions` (list), and `/sessi
 |---|---|---|---|
 | Recommend with valid idea | `POST /recommend` with idea string | 200 + recommendation JSON with all required fields | integration |
 | Recommend with constraints | `POST /recommend` with idea + constraints dict | Stack selection reflects hard constraints (e.g. auth=none → no auth anywhere) | integration |
-| Generate full pipeline | `POST /generate` with idea + selections | 200 + `{prd, env, growth_check}` | integration |
+| Generate full pipeline | `POST /generate` with idea + selections | 200 + `{main_prd, env, growth_check, prd_quality, prd}` | integration |
 | Env builder — Postgres | selections with `database: postgres` | `DATABASE_URL=postgres://...` present in env output | unit |
 | Env builder — API key filled | selections with OpenRouter + provided key | `OPENROUTER_API_KEY=<provided>` in env output | unit |
-| PRD sections present | PRD Generator output | All six sections present: Overview, Architecture, Components, API Usage, Database Design, Test Cases | unit |
+| PRD sections present | PRD Generator output | Required sections present: Overview, System Contract (Source of Truth), Architecture, Components, Test Cases | unit |
 | Growth check shape | Growth Check output | `good`, `warnings`, `missing` each present and non-empty arrays of `{title, detail}` | unit |
 | Option advisor relevance | Option Advisor with `fit_score < 20` | `relevant = false` | unit |
-| Confidence range | Recommender output | `confidence` is float between 0 and 1 | unit |
+| Confidence shape | Recommender output | `confidence` is object `{score: int, reason: string}` | unit |
 | Session persist and retrieve | `POST /recommend` then `GET /sessions/latest` | Returned session matches submitted idea and recommendation | integration |
 | GitHub repo creation | `POST /create-repo` with generated outputs | GitHub repo created, URL returned, kickoff prompt present | e2e |
 | External client flow | Direct `POST /recommend` with no UI | Valid recommendation response identical to UI path | e2e |
